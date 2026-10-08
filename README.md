@@ -41,6 +41,8 @@ This is the core asset. Keep it in Google Sheets or Excel, then export it as CSV
 | `verified_by` | | Not shown to users or sent to the AI |
 | `internal_notes` | | Not shown to users or sent to the AI |
 
+**Starting point:** `data/call-sheet-draft.csv` has 42 real Brooklyn places (Brownsville, East New York, Bed-Stuy, Crown Heights) plus the citywide shelter intake sites, gathered from public directories in October 2026. None are verified. The `to_confirm_on_call` column lists what each call needs to settle, and `sources` lists where each row came from. After each call, fix the row, fill in `last_verified`, and copy it into `data/listings.csv`. The app ignores the two extra columns.
+
 **Hours format:** `Mon-Fri 09:00-17:00; Sat 10:00-14:00`. Use 24-hour time. For two windows on the same days, list both: `Tue,Thu 12:00-14:00 16:00-18:00`. Overnight: `Mon-Sun 19:00-24:00 00:00-08:00`. Always open: `24/7`.
 
 **Check the file after every edit:**
