@@ -2,7 +2,7 @@
 
 A mobile web page with one search box for frontline workers in Brooklyn: hospital and ER social workers, pantry and shelter staff, library and school social workers. The worker describes a situation in plain words, e.g. *"Mom with 2 kids, evicted yesterday, no food at home, near Brownsville, speaks Spanish."* The page gives back 2–3 next steps from **your phone-verified list**. Each one shows what they offer, address and transit, whether it's open now, who's eligible, what to bring, a call button, and the date it was last verified.
 
-It covers two needs only: **food** and **urgent housing**. No logins, no accounts, nothing saved.
+It covers **food**, **urgent housing**, **health care**, **mental health**, **education** and **community** help. Listings can be walk-in places, hotlines, text lines or websites. No logins, no accounts, nothing saved.
 
 ## Run it
 
@@ -24,7 +24,7 @@ This is the core asset. Keep it in Google Sheets or Excel, then export it as CSV
 |---|---|---|
 | `id` | yes | Short code you choose (`F01`, `H07`). Never reuse one. |
 | `name` | yes | |
-| `category` | yes | `food` or `housing` |
+| `category` | yes | `food`, `housing`, `health`, `mental_health`, `education` or `community` |
 | `offers` | yes | What they do, in plain words |
 | `address` | one of these three | Leave blank for phone- or online-only help |
 | `neighborhood` | | Helps match "near Brownsville" |
@@ -41,7 +41,7 @@ This is the core asset. Keep it in Google Sheets or Excel, then export it as CSV
 | `verified_by` | | Not shown to users or sent to the AI |
 | `internal_notes` | | Not shown to users or sent to the AI |
 
-**It's also your call sheet.** The 42 rows (Brownsville, East New York, Bed-Stuy, Crown Heights, plus the citywide shelter intake sites) came from public directories in October 2026. The `to_confirm_on_call` column lists what each call needs to settle, and `sources` lists where each row came from. After each call, fix the row and fill in `last_verified`. The label then changes to "Last verified by phone on …". The app ignores the two extra columns.
+**It's also your call sheet.** The 69 rows came from public directories and official sites in October 2026: food and housing places in Brownsville, East New York, Bed-Stuy and Crown Heights, the citywide shelter intake sites, and health clinics, crisis lines, school enrollment centers, library classes and online resources. The `to_confirm_on_call` column lists what each call needs to settle, and `sources` lists where each row came from. After each call, fix the row and fill in `last_verified`. The label then changes to "Last verified by phone on …". The app ignores the two extra columns.
 
 **Hours format:** `Mon-Fri 09:00-17:00; Sat 10:00-14:00`. Use 24-hour time. For two windows on the same days, list both: `Tue,Thu 12:00-14:00 16:00-18:00`. Overnight: `Mon-Sun 19:00-24:00 00:00-08:00`. Always open: `24/7`.
 
@@ -92,4 +92,4 @@ Any host that runs Node works (Render, Railway, Fly.io, a small VPS). Set `ANTHR
 
 ## Deliberately left out (see the plan)
 
-SOS / case manager button, SMS, sponsor features, accounts and history, follow-up nudges, anything touching patient records, needs other than food and housing, other boroughs, multiple interface languages, native apps.
+SOS / case manager button, SMS, sponsor features, accounts and history, follow-up nudges, anything touching patient records, other boroughs, multiple interface languages, native apps.

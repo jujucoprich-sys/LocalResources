@@ -5,19 +5,20 @@ import { nycClock, openStatus } from "./hours.js";
 export const MODEL = process.env.CLAUDE_MODEL || "claude-opus-5-5";
 const MAX_RESULTS = 3;
 
-const SYSTEM_RULES = `You help frontline workers in Brooklyn (hospital social workers, food pantry and shelter staff, library and school social workers) find next steps for someone they're helping. The worker describes the person's situation in plain words. You pick the 2-3 best options from the VERIFIED LISTINGS below.
+const SYSTEM_RULES = `You help frontline workers in Brooklyn (hospital social workers, food pantry and shelter staff, library and school social workers) find next steps for someone they're helping. The list covers food, urgent housing, health care, mental health, education and community help. Some listings are walk-in places; others are hotlines, text lines or websites. The worker describes the person's situation in plain words. You pick the 2-3 best options from the VERIFIED LISTINGS below.
 
 Rules:
 - Only recommend listings from VERIFIED LISTINGS, by their exact id. Never invent or suggest any other place, program, address, phone number, or hours.
 - Recommend at most 3. Fewer is better than a weak fit. Order them best first.
 - If the situation has more than one need (e.g. food and housing), cover the most urgent need first, then the others if a listing fits.
+- If the person may be in danger of suicide or self-harm, put a 24/7 crisis line first (NYC 988) and say in "message" to call 911 if there is immediate danger.
 - Respect eligibility. Don't recommend a listing the person clearly doesn't qualify for (e.g. a men's shelter for a mother with children).
 - If the worker needs help today, prefer listings that are open now or later today. Respect hours_notes.
 - Prefer listings with verified: true. Unverified listings may be recommended when they fit clearly better; the app labels them "call first".
 - Some listings are citywide intake sites outside Brooklyn (e.g. PATH for families with children). Recommend them when the situation requires that intake.
 - Prefer listings in or near the person's neighborhood or zip, and ones that speak the person's language when it's mentioned.
 - "why" is one short sentence, in plain words, saying why this option fits this situation. Do not state addresses, phone numbers, or hours in "why"; those are shown to the worker from the verified data.
-- If nothing in the list fits a need, set nothing_fits to true for that case and say so plainly in "message" (one or two sentences). The app will show NYC 311 and crisis hotlines. Needs outside food and urgent housing (jobs, health care, benefits other than SNAP) are not covered by this list yet.
+- If nothing in the list fits a need, set nothing_fits to true for that case and say so plainly in "message" (one or two sentences). The app will show NYC 311 and crisis hotlines. Needs outside these categories (for example jobs, immigration or debt) are not covered by this list yet.
 - "message" is optional context for the worker: an important gap, an eligibility caution, or what to ask the person. Leave it empty if there's nothing useful to add.
 - Set looks_like_personal_info to true if the text seems to contain a person's name, exact street address of the person, date of birth, or ID number.
 
@@ -98,13 +99,26 @@ export async function matchWithClaude(query, listings, { client, now = new Date(
 // fails. Cruder, but still only ever returns verified listings.
 
 const NEED_WORDS = {
-  food: ["food", "hungry", "hunger", "eat", "meal", "pantry", "groceries", "grocery", "snap", "ebt", "food stamps", "formula", "lunch", "dinner", "breakfast", "soup kitchen", "comida", "hambre"],
+  food: ["wic", "food", "hungry", "hunger", "eat", "meal", "pantry", "groceries", "grocery", "snap", "ebt", "food stamps", "formula", "lunch", "dinner", "breakfast", "soup kitchen", "comida", "hambre"],
+  health: ["doctor", "clinic", "sick", "insurance", "medicaid", "medicine", "medication", "prescription", "prenatal", "dentist", "uninsured", "checkup", "health care", "healthcare", "injury", "pain"],
+  mental_health: ["depress", "anxiety", "anxious", "suicid", "kill myself", "hopeless", "therapy", "therapist", "counsel", "mental", "stress", "panic", "grief", "grieving", "self-harm", "lonely", "loneliness", "crisis", "overwhelmed", "trauma"],
+  education: ["school", "enroll", "ged", "hse", "high school", "english class", "learn english", "esol", "literacy", "tutor", "homework", "class", "college", "computer skills", "learn to read", "resume", "job search"],
+  community: ["volunteer", "community", "mutual aid", "neighbors", "isolated", "city services", "311", "help line", "where to start"],
   housing: ["evict", "eviction", "evicted", "homeless", "shelter", "sleep", "nowhere", "kicked out", "lost his room", "lost her room", "drop-in", "court papers", "behind on rent", "housing", "rent", "landlord", "lockout", "locked out", "sleeping", "street", "couch", "nowhere to stay", "place to stay", "housing court", "marshal", "arrears", "desalojo", "vivienda", "albergue"],
+};
+export const CATEGORY_LABELS = {
+  food: "Food help",
+  housing: "Housing help",
+  health: "Health care",
+  mental_health: "Mental health support",
+  education: "Education",
+  community: "Community help",
 };
 const LANGUAGES = ["spanish", "chinese", "mandarin", "cantonese", "haitian creole", "creole", "russian", "arabic", "bengali", "urdu", "polish", "yiddish", "french"];
 
 // Situation words that point to a kind of help, matched against the
 // listing's own text: [situation pattern, listing pattern, score, reason].
+const LGBTQ = /\b(lgbt|gay|lesbian|bi|bisexual|trans|transgender|queer|nonbinary)\b/i;
 const NO_ID = /\bno id\b|without (an )?id|(doesn'?t|does not|don'?t) have (an )?id/i;
 const TOPICS = [
   [/\b(court|lawyer|attorney|marshal|lockout|locked out|landlord|evict)/i, /lawyer|legal|eviction defense|court/i, 3, "free legal help"],
@@ -113,6 +127,16 @@ const TOPICS = [
   [/\b(sleep|street|nowhere|tonight|homeless|shelter|lost (his|her|their) room|kicked out)/i, /intake|drop-in|shelter/i, 3, "a place to stay"],
   [/\b(meal|hungry|hot food|eat)/i, /meal|soup kitchen/i, 2, "serves meals"],
   [NO_ID, /no id needed|not turned away/i, 2, "no ID needed"],
+  [/\b(suicid|kill (my|him|her)self|self-harm|hopeless|crisis|want to die)/i, /crisis counseling/i, 5, "24/7 crisis support"],
+  [LGBTQ, /LGBTQ/i, 4, "LGBTQ support"],
+  [/\bvolunteer/i, /volunteer (opportunities|office)/i, 5, "volunteering"],
+  [/\b(teen|teenager|youth|young person|student)\b/i, /teens|young people/i, 2, "for young people"],
+  [/\b(uninsured|no insurance|undocumented|immigra|asylum|new arrival)/i, /immigration status|can't afford/i, 3, "any immigration status"],
+  [/\b(ged|hse|high school (diploma|equivalency))/i, /HSE|GED/i, 4, "GED / HSE classes"],
+  [/\b(english|esol)\b/i, /English classes/i, 3, "English classes"],
+  [/\b(enroll|register|new school|school for (my|her|his|their))/i, /enrolling/i, 3, "school enrollment"],
+  [/\b(pregnant|baby|infant|newborn|breastfeed)/i, /WIC|pregnant/i, 3, "for pregnant people and babies"],
+  [/\b(family|families|mom|mother|parent)\b/i, /NAMI|families/i, 1, "family support"],
 ];
 const NEIGHBORHOOD_ALIASES = [
   [/\bbed[- ]?stuy\b/gi, "Bedford-Stuyvesant"],
@@ -125,12 +149,15 @@ function ineligible(listing, text) {
   const kids = /\b(kids?|children|child|baby|pregnant|son|daughter)\b/i.test(text);
   const woman = /\b(woman|women|female|she|her|mom|mother)\b/i.test(text);
   const man = /\b(man|men|male|he|his|dad|father)\b/i.test(text);
+  const minor = /\b(teen|teenager|minor|1[0-7][- ]?(year|yr)s?[- ]old)\b/i.test(text);
   const e = listing.eligibility;
+  if (minor && /18\+|single adult/i.test(e)) return true;
   if (/single adult men/i.test(e)) return kids || (woman && !man);
   if (/single adult women/i.test(e)) return kids || (man && !woman);
   if (/families with children/i.test(e)) return !kids;
   if (/no children under 21/i.test(e)) return kids || /\bsingle\b/i.test(text) || (!/\b(couple|partner|wife|husband|family)\b/i.test(text));
   if (NO_ID.test(text) && /\bID required/i.test(listing.what_to_bring)) return true;
+  if (/^LGBTQ/i.test(e) && !LGBTQ.test(text)) return true;
   if (/single adults/i.test(e)) return kids;
   return false;
 }
@@ -152,7 +179,7 @@ export function matchWithKeywords({ situation, zip, urgency }, listings, { now =
     return {
       results: [],
       nothing_fits: true,
-      message: "Couldn't tell whether this is about food or housing. Try words like \"food\", \"pantry\", \"evicted\" or \"shelter\".",
+      message: "Couldn't tell what kind of help this is. Try words like \"food\", \"evicted\", \"doctor\", \"stressed\", \"GED\" or \"volunteer\".",
       looks_like_personal_info: false,
     };
   }
@@ -161,7 +188,7 @@ export function matchWithKeywords({ situation, zip, urgency }, listings, { now =
   const scored = listings
     .filter((l) => needs.includes(l.category) && !ineligible(l, situation))
     .map((l) => {
-      const reasons = [l.category === "food" ? "Food help" : "Housing help"];
+      const reasons = [CATEGORY_LABELS[l.category]];
       let score = 0;
       if (needs[0] === l.category) score += 2; // first-mentioned need
       if (zip && l.zip === zip) {
@@ -250,7 +277,9 @@ export function buildResponse(match, listings, now = new Date()) {
       transit: l.transit,
       hours: l.hours,
       hours_notes: l.hours_notes,
-      open: openStatus(l.hours, now),
+      open: !l.address && !l.hours
+        ? { state: "online", label: l.website ? "Online" : "By phone" }
+        : openStatus(l.hours, now),
       eligibility: l.eligibility,
       what_to_bring: l.what_to_bring,
       phone: l.phone,

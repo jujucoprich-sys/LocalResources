@@ -2,13 +2,13 @@ import fs from "node:fs";
 import { parseCsvObjects } from "./csv.js";
 import { parseHours } from "./hours.js";
 
-export const CATEGORIES = ["food", "housing"];
+export const CATEGORIES = ["food", "housing", "health", "mental_health", "education", "community"];
 
 // Columns in the listings spreadsheet. Order here is the order in the template.
 export const COLUMNS = [
   "id", // short unique code you choose, e.g. F01, H07. Never reuse one.
   "name",
-  "category", // food | housing
+  "category", // food | housing | health | mental_health | education | community
   "offers", // what they do, in plain words
   "address",
   "neighborhood",

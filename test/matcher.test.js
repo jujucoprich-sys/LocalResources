@@ -74,3 +74,20 @@ test("matchWithClaude throws on refusal so the server can fall back", async () =
   const fakeClient = { beta: { messages: { create: async () => ({ stop_reason: "refusal", content: [] }) } } };
   await assert.rejects(matchWithClaude({ situation: "x", zip: "", urgency: "today" }, listings, { client: fakeClient }));
 });
+
+test("keyword matcher: new categories and crisis lines", () => {
+  const real = loadListings("data/listings.csv", WED_230PM).listings;
+  const pick = (situation) => matchWithKeywords({ situation, zip: "", urgency: "today" }, real, { now: WED_230PM }).results.map((r) => r.id);
+  assert.equal(pick("Teen feeling hopeless and thinking about suicide")[0], "P01"); // 988, not the LGBTQ-only line
+  assert.equal(pick("Gay teen feeling suicidal")[0], "P03");
+  assert.ok(pick("Uninsured undocumented dad needs a doctor").includes("C01"));
+  assert.equal(pick("Wants to get a GED")[0], "E01");
+  assert.equal(pick("Wants to volunteer")[0], "K04");
+});
+
+test("online listings show as online, not 'hours unknown'", () => {
+  const real = loadListings("data/listings.csv", WED_230PM).listings;
+  const out = buildResponse({ results: [{ id: "K02", why: "x" }, { id: "F31", why: "y" }] }, real, WED_230PM);
+  assert.equal(out.results[0].open.label, "Open 24 hours"); // findhelp.org, hours 24/7
+  assert.equal(out.results[1].open.label, "By phone"); // WIC hotline, no hours listed
+});

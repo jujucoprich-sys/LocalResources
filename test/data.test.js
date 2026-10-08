@@ -66,9 +66,9 @@ test("listings: bad rows are excluded with a reason", () => {
 
 test("listings: the real call sheet loads", () => {
   const { listings, errors } = loadListings("data/listings.csv", WED_230PM);
-  assert.ok(listings.length >= 40);
+  assert.ok(listings.length >= 60);
   assert.ok(errors.length <= 1); // H09 has no address or phone yet
-  assert.ok(listings.every((l) => ["food", "housing"].includes(l.category)));
+  assert.ok(listings.every((l) => ["food", "housing", "health", "mental_health", "education", "community"].includes(l.category)));
 });
 
 test("privacy: strips phone numbers, emails, IDs, dates", () => {

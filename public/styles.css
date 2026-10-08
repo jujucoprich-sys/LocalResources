@@ -18,6 +18,14 @@
   --food-ink: #8a3d12;
   --housing-bg: #e2e7ff;
   --housing-ink: #2f3f9e;
+  --health-bg: #ffe2e0;
+  --health-ink: #9a2e26;
+  --mind-bg: #efe5ff;
+  --mind-ink: #5b3a9e;
+  --edu-bg: #daf0fb;
+  --edu-ink: #155a80;
+  --comm-bg: #ecefd5;
+  --comm-ink: #535c12;
   --open-bg: #dcf3e6;
   --open-ink: #146c42;
   --closed-bg: #fbe7dc;
@@ -34,6 +42,7 @@
     --bg: #0d1715; --surface: #15221f; --surface-2: #1c2c28; --ink: #e6f0ec; --muted: #9db3ac; --line: #27392f;
     --accent: #5fd4bd; --accent-ink: #06231d; --accent-soft: #163a33; --mast: #0f3a33; --mast-glow: #1d6b5c; --mast-ink: #eafaf5;
     --food-bg: #3a2618; --food-ink: #ffc9a3; --housing-bg: #1f2547; --housing-ink: #c3cbff;
+    --health-bg: #3d1d1b; --health-ink: #ffb4ac; --mind-bg: #2b2142; --mind-ink: #d5c2ff; --edu-bg: #152f3d; --edu-ink: #a6dcf7; --comm-bg: #2c2f16; --comm-ink: #dbe39b;
     --open-bg: #143424; --open-ink: #7be0a8; --closed-bg: #3a2219; --closed-ink: #ffb08f; --warn-bg: #3a3010; --warn-ink: #f5dc8f;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.3);
     color-scheme: dark;
@@ -43,6 +52,7 @@
   --bg: #0d1715; --surface: #15221f; --surface-2: #1c2c28; --ink: #e6f0ec; --muted: #9db3ac; --line: #27392f;
   --accent: #5fd4bd; --accent-ink: #06231d; --accent-soft: #163a33; --mast: #0f3a33; --mast-glow: #1d6b5c; --mast-ink: #eafaf5;
   --food-bg: #3a2618; --food-ink: #ffc9a3; --housing-bg: #1f2547; --housing-ink: #c3cbff;
+  --health-bg: #3d1d1b; --health-ink: #ffb4ac; --mind-bg: #2b2142; --mind-ink: #d5c2ff; --edu-bg: #152f3d; --edu-ink: #a6dcf7; --comm-bg: #2c2f16; --comm-ink: #dbe39b;
   --open-bg: #143424; --open-ink: #7be0a8; --closed-bg: #3a2219; --closed-ink: #ffb08f; --warn-bg: #3a3010; --warn-ink: #f5dc8f;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.3);
   color-scheme: dark;
@@ -228,9 +238,14 @@ textarea::placeholder, input::placeholder { color: var(--muted); opacity: 0.8; }
 }
 .badge.food { background: var(--food-bg); color: var(--food-ink); }
 .badge.housing { background: var(--housing-bg); color: var(--housing-ink); }
+.badge.health { background: var(--health-bg); color: var(--health-ink); }
+.badge.mental_health { background: var(--mind-bg); color: var(--mind-ink); }
+.badge.education { background: var(--edu-bg); color: var(--edu-ink); }
+.badge.community { background: var(--comm-bg); color: var(--comm-ink); }
 .open-pill.open { background: var(--open-bg); color: var(--open-ink); }
 .open-pill.closed { background: var(--closed-bg); color: var(--closed-ink); }
 .open-pill.unknown { background: var(--surface-2); color: var(--muted); }
+.open-pill.online { background: var(--accent-soft); color: var(--accent); }
 .unverified { background: var(--warn-bg); color: var(--warn-ink); }
 
 .card h2 {
@@ -260,7 +275,7 @@ dd { margin: 0; display: grid; gap: 2px; overflow-wrap: anywhere; }
 
 .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
 .actions .call { flex: 1 1 100%; }
-.actions .map, .actions .copy { flex: 1 1 0; }
+.actions .map, .actions .site, .actions .copy { flex: 1 1 0; }
 .verified { margin: 4px 0 0; font-size: 0.85rem; color: var(--muted); }
 .verified.pending { color: var(--warn-ink); }
 

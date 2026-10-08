@@ -25,6 +25,19 @@ for (const chip of document.querySelectorAll("[data-example]")) {
   });
 }
 
+const CATEGORY_NAMES = {
+  food: "Food",
+  housing: "Housing",
+  health: "Health care",
+  mental_health: "Mental health",
+  education: "Education",
+  community: "Community",
+};
+
+function webHref(site) {
+  return site.startsWith("http") ? site : `https://${site}`;
+}
+
 function el(tag, className, text) {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -52,6 +65,7 @@ function asText(r) {
     r.name,
     r.address ? r.address + (r.transit ? ` (${r.transit})` : "") : "",
     r.phone ? `Phone: ${r.phone}` : "",
+    r.website ? `Web: ${r.website}` : "",
     r.hours ? `Hours: ${r.hours}${r.hours_notes ? ". " + r.hours_notes : ""}` : r.hours_notes,
     r.what_to_bring ? `Bring: ${r.what_to_bring}` : "",
   ]
@@ -64,7 +78,7 @@ function renderCard(r) {
   card.querySelector(".name").textContent = r.name;
 
   const badge = card.querySelector(".badge");
-  badge.textContent = r.category === "food" ? "Food" : "Housing";
+  badge.textContent = CATEGORY_NAMES[r.category] || r.category;
   badge.classList.add(r.category);
 
   const top = card.querySelector(".card-top");
@@ -79,8 +93,9 @@ function renderCard(r) {
   else offers.textContent = r.offers;
 
   const where = card.querySelector(".where");
-  where.append(el("span", null, r.address || "Phone or online only"));
-  if (r.neighborhood && r.address) where.append(el("span", "muted", r.neighborhood));
+  where.append(el("span", null, r.address || (r.website ? "Online or by phone" : "By phone")));
+  if (!r.address && r.neighborhood) where.append(el("span", "muted", r.neighborhood));
+  if (r.address && r.neighborhood) where.append(el("span", "muted", r.neighborhood));
   if (r.transit) where.append(el("span", "muted", r.transit));
 
   const hours = card.querySelector(".hours");
@@ -105,12 +120,19 @@ function renderCard(r) {
     call.href = telHref(r.phone);
     call.textContent = `Call ${r.phone}`;
   } else if (r.website) {
-    call.href = r.website.startsWith("http") ? r.website : `https://${r.website}`;
+    call.href = webHref(r.website);
     call.target = "_blank";
     call.rel = "noopener";
-    call.textContent = `Visit ${r.website}`;
+    call.textContent = `Open ${r.website}`;
   } else {
     call.remove();
+  }
+  if (r.phone && r.website) {
+    const site = el("a", "site secondary", "Website");
+    site.href = webHref(r.website);
+    site.target = "_blank";
+    site.rel = "noopener";
+    card.querySelector(".copy").before(site);
   }
 
   const map = card.querySelector(".map");
