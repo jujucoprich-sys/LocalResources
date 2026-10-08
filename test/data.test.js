@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { parseCsv } from "../src/csv.js";
 import { openStatus, parseHours } from "../src/hours.js";
-import { loadListings, validateListings } from "../src/listings.js";
+import { BOROUGHS, CATEGORIES, loadListings, validateListings } from "../src/listings.js";
 import { redact } from "../src/privacy.js";
 
 // Wednesday 2026-10-07, 14:30 in New York (EDT, UTC-4).
@@ -48,7 +48,7 @@ test("listings: bad rows are excluded with a reason", () => {
     [
       base,
       { ...base, _row: 3 }, // duplicate id
-      { ...base, _row: 4, id: "F2", category: "jobs" },
+      { ...base, _row: 4, id: "F2", category: "pets" },
       { ...base, _row: 5, id: "F3", hours: "9 to 5" },
       { ...base, _row: 6, id: "F4", address: "", phone: "", website: "" },
       { ...base, _row: 7, id: "F5", last_verified: "2026-01-01" }, // stale but usable
@@ -68,7 +68,8 @@ test("listings: the real call sheet loads", () => {
   const { listings, errors } = loadListings("data/listings.csv", WED_230PM);
   assert.ok(listings.length >= 60);
   assert.ok(errors.length <= 1); // H09 has no address or phone yet
-  assert.ok(listings.every((l) => ["food", "housing", "health", "mental_health", "education", "community"].includes(l.category)));
+  assert.ok(listings.every((l) => CATEGORIES.includes(l.category) && BOROUGHS.includes(l.borough)));
+  assert.ok(listings.length >= 140);
 });
 
 test("privacy: strips phone numbers, emails, IDs, dates", () => {

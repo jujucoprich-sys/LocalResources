@@ -12,7 +12,7 @@ fetch("/api/info")
       banner.textContent = "Demo mode: these listings are made up. Don't refer anyone to them.";
       banner.hidden = false;
     } else if (info.unverified > 0) {
-      banner.textContent = `Draft list: ${info.unverified} of ${info.count} places haven't been confirmed by phone yet. Call before sending anyone.`;
+      banner.textContent = `Draft list: ${info.unverified} of ${info.count} resources haven't been confirmed by phone yet. Call before sending anyone.`;
       banner.hidden = false;
     }
   })
@@ -31,6 +31,9 @@ const CATEGORY_NAMES = {
   health: "Health care",
   mental_health: "Mental health",
   education: "Education",
+  jobs: "Jobs",
+  legal: "Legal help",
+  safety: "Safety",
   community: "Community",
 };
 
@@ -54,9 +57,9 @@ function telHref(phone) {
   return "tel:" + phone.replace(/[^\d+]/g, "");
 }
 
-// Addresses outside Brooklyn (citywide intake sites) name their borough.
-function mapQuery(address) {
-  return /\b(Bronx|Manhattan|Queens|Staten Island)\b/i.test(address) ? `${address}, NY` : `${address}, Brooklyn, NY`;
+function mapQuery(r) {
+  const borough = ["Manhattan", "Brooklyn", "Queens", "Bronx", "Staten Island"].includes(r.borough) ? r.borough : "";
+  return borough && !r.address.includes(borough) ? `${r.address}, ${borough}, NY` : `${r.address}, NY`;
 }
 
 // Plain-text version a worker can paste into a text message for the person.
@@ -95,7 +98,10 @@ function renderCard(r) {
   const where = card.querySelector(".where");
   where.append(el("span", null, r.address || (r.website ? "Online or by phone" : "By phone")));
   if (!r.address && r.neighborhood) where.append(el("span", "muted", r.neighborhood));
-  if (r.address && r.neighborhood) where.append(el("span", "muted", r.neighborhood));
+  if (r.address) {
+    const place = [r.neighborhood, r.borough].filter((v, i, a) => v && a.indexOf(v) === i && v !== "Citywide").join(", ");
+    if (place) where.append(el("span", "muted", place));
+  }
   if (r.transit) where.append(el("span", "muted", r.transit));
 
   const hours = card.querySelector(".hours");
@@ -136,7 +142,7 @@ function renderCard(r) {
   }
 
   const map = card.querySelector(".map");
-  if (r.address) map.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(mapQuery(r.address));
+  if (r.address) map.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(mapQuery(r));
   else map.remove();
 
   const copy = card.querySelector(".copy");

@@ -8,7 +8,8 @@ const { listings } = loadListings("data/sample-listings.csv", WED_230PM);
 
 test("detectNeeds", () => {
   assert.deepEqual(detectNeeds("evicted yesterday, no food at home"), ["food", "housing"]);
-  assert.deepEqual(detectNeeds("needs a job"), []);
+  assert.deepEqual(detectNeeds("likes the guitar"), []);
+  assert.deepEqual(detectNeeds("just laid off, needs a job"), ["jobs"]);
 });
 
 test("keyword matcher covers each need and favors zip/language", () => {
@@ -90,4 +91,19 @@ test("online listings show as online, not 'hours unknown'", () => {
   const out = buildResponse({ results: [{ id: "K02", why: "x" }, { id: "F31", why: "y" }] }, real, WED_230PM);
   assert.equal(out.results[0].open.label, "Open 24 hours"); // findhelp.org, hours 24/7
   assert.equal(out.results[1].open.label, "By phone"); // WIC hotline, no hours listed
+});
+
+test("keyword matcher: stays in the person's borough", () => {
+  const real = loadListings("data/listings.csv", WED_230PM).listings;
+  const pick = (situation, zip = "") => matchWithKeywords({ situation, zip, urgency: "today" }, real, { now: WED_230PM }).results.map((r) => real.find((l) => l.id === r.id));
+  assert.ok(pick("Single man, nowhere to sleep tonight, in Harlem").every((l) => ["Manhattan", "Citywide"].includes(l.borough)));
+  assert.ok(pick("Hungry, needs a hot meal", "10458").every((l) => l.borough === "Bronx"));
+  assert.equal(pick("Partner hurts her, afraid to go home, Queens")[0].category, "safety");
+  assert.ok(!pick("Single man, nowhere to sleep, Manhattan").some((l) => /young people/i.test(l.eligibility)));
+});
+
+test("keyword matcher: citywide intake sites aren't penalized by borough", () => {
+  const real = loadListings("data/listings.csv", WED_230PM).listings;
+  const ids = matchWithKeywords({ situation: "Mom with 2 kids, evicted yesterday, near Brownsville", zip: "", urgency: "today" }, real, { now: WED_230PM }).results.map((r) => r.id);
+  assert.ok(ids.includes("H02")); // PATH, in the Bronx, is where every family with children applies
 });

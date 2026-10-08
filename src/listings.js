@@ -2,16 +2,18 @@ import fs from "node:fs";
 import { parseCsvObjects } from "./csv.js";
 import { parseHours } from "./hours.js";
 
-export const CATEGORIES = ["food", "housing", "health", "mental_health", "education", "community"];
+export const CATEGORIES = ["food", "housing", "health", "mental_health", "education", "jobs", "legal", "safety", "community"];
+export const BOROUGHS = ["Manhattan", "Brooklyn", "Queens", "Bronx", "Staten Island", "Citywide"];
 
 // Columns in the listings spreadsheet. Order here is the order in the template.
 export const COLUMNS = [
   "id", // short unique code you choose, e.g. F01, H07. Never reuse one.
   "name",
-  "category", // food | housing | health | mental_health | education | community
+  "category", // one of CATEGORIES
   "offers", // what they do, in plain words
   "address",
   "neighborhood",
+  "borough", // one of BOROUGHS; Citywide for phone and online help
   "zip",
   "transit", // nearest subway/bus, e.g. "3 train to Saratoga Av; B47 bus"
   "hours", // machine-readable, see src/hours.js
@@ -55,6 +57,7 @@ export function validateListings(rows, now = new Date()) {
     if (r.category && !CATEGORIES.includes(r.category.toLowerCase())) {
       rowErrors.push(`category must be one of: ${CATEGORIES.join(", ")}`);
     }
+    if (r.borough && !BOROUGHS.includes(r.borough)) rowErrors.push(`borough must be one of: ${BOROUGHS.join(", ")}`);
     if (r.zip && !/^\d{5}$/.test(r.zip)) rowErrors.push(`zip "${r.zip}" should be 5 digits`);
     if (r.last_verified) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(r.last_verified) || isNaN(new Date(r.last_verified))) {
@@ -99,6 +102,7 @@ export function listingForModel(l) {
     offers: l.offers,
     address: l.address,
     neighborhood: l.neighborhood,
+    borough: l.borough,
     zip: l.zip,
     hours: l.hours,
     hours_notes: l.hours_notes,

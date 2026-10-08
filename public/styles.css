@@ -26,6 +26,12 @@
   --edu-ink: #155a80;
   --comm-bg: #ecefd5;
   --comm-ink: #535c12;
+  --jobs-bg: #e3f1ff;
+  --jobs-ink: #1b4f8c;
+  --legal-bg: #ece9e4;
+  --legal-ink: #4c4337;
+  --safety-bg: #ffe3f0;
+  --safety-ink: #8f1f5a;
   --open-bg: #dcf3e6;
   --open-ink: #146c42;
   --closed-bg: #fbe7dc;
@@ -43,6 +49,7 @@
     --accent: #5fd4bd; --accent-ink: #06231d; --accent-soft: #163a33; --mast: #0f3a33; --mast-glow: #1d6b5c; --mast-ink: #eafaf5;
     --food-bg: #3a2618; --food-ink: #ffc9a3; --housing-bg: #1f2547; --housing-ink: #c3cbff;
     --health-bg: #3d1d1b; --health-ink: #ffb4ac; --mind-bg: #2b2142; --mind-ink: #d5c2ff; --edu-bg: #152f3d; --edu-ink: #a6dcf7; --comm-bg: #2c2f16; --comm-ink: #dbe39b;
+    --jobs-bg: #16283f; --jobs-ink: #a9cdf5; --legal-bg: #2c2925; --legal-ink: #ddd3c4; --safety-bg: #3a1a2b; --safety-ink: #ffb3d6;
     --open-bg: #143424; --open-ink: #7be0a8; --closed-bg: #3a2219; --closed-ink: #ffb08f; --warn-bg: #3a3010; --warn-ink: #f5dc8f;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.3);
     color-scheme: dark;
@@ -53,6 +60,7 @@
   --accent: #5fd4bd; --accent-ink: #06231d; --accent-soft: #163a33; --mast: #0f3a33; --mast-glow: #1d6b5c; --mast-ink: #eafaf5;
   --food-bg: #3a2618; --food-ink: #ffc9a3; --housing-bg: #1f2547; --housing-ink: #c3cbff;
   --health-bg: #3d1d1b; --health-ink: #ffb4ac; --mind-bg: #2b2142; --mind-ink: #d5c2ff; --edu-bg: #152f3d; --edu-ink: #a6dcf7; --comm-bg: #2c2f16; --comm-ink: #dbe39b;
+  --jobs-bg: #16283f; --jobs-ink: #a9cdf5; --legal-bg: #2c2925; --legal-ink: #ddd3c4; --safety-bg: #3a1a2b; --safety-ink: #ffb3d6;
   --open-bg: #143424; --open-ink: #7be0a8; --closed-bg: #3a2219; --closed-ink: #ffb08f; --warn-bg: #3a3010; --warn-ink: #f5dc8f;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.3);
   color-scheme: dark;
@@ -242,6 +250,9 @@ textarea::placeholder, input::placeholder { color: var(--muted); opacity: 0.8; }
 .badge.mental_health { background: var(--mind-bg); color: var(--mind-ink); }
 .badge.education { background: var(--edu-bg); color: var(--edu-ink); }
 .badge.community { background: var(--comm-bg); color: var(--comm-ink); }
+.badge.jobs { background: var(--jobs-bg); color: var(--jobs-ink); }
+.badge.legal { background: var(--legal-bg); color: var(--legal-ink); }
+.badge.safety { background: var(--safety-bg); color: var(--safety-ink); }
 .open-pill.open { background: var(--open-bg); color: var(--open-ink); }
 .open-pill.closed { background: var(--closed-bg); color: var(--closed-ink); }
 .open-pill.unknown { background: var(--surface-2); color: var(--muted); }
