@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Brooklyn Resource Finder</title>
+  <meta name="description" content="Find verified food and housing help in Brooklyn in under a minute.">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div id="sample-banner" class="banner" hidden>
+    Demo mode: these listings are made up. Don't refer anyone to them.
+  </div>
+
+  <main>
+    <header>
+      <h1>Brooklyn Resource Finder</h1>
+      <p class="sub">Food and urgent housing help. Every place listed has been checked by phone.</p>
+    </header>
+
+    <form id="search" autocomplete="off">
+      <label for="situation">What's going on?</label>
+      <textarea id="situation" name="situation" rows="4" maxlength="1000" required
+        placeholder="Mom with 2 kids, evicted yesterday, no food at home, near Brownsville, speaks Spanish."></textarea>
+      <p class="privacy" id="privacy-note">
+        <strong>No names, birthdays, addresses or ID numbers.</strong> Describe the situation only. Nothing you type is saved.
+      </p>
+
+      <div class="row">
+        <div class="field">
+          <label for="zip">Zip code <span class="optional">(optional)</span></label>
+          <input id="zip" name="zip" inputmode="numeric" pattern="\d{5}" maxlength="5" placeholder="11212">
+        </div>
+        <fieldset class="field">
+          <legend>Needs help</legend>
+          <div class="toggle">
+            <input type="radio" id="today" name="urgency" value="today" checked><label for="today">Today</label>
+            <input type="radio" id="week" name="urgency" value="week"><label for="week">This week</label>
+          </div>
+        </fieldset>
+      </div>
+
+      <button type="submit" id="go">Find next steps</button>
+    </form>
+
+    <section id="status" aria-live="polite"></section>
+    <section id="results" aria-live="polite"></section>
+
+    <footer>
+      <p>In an emergency call <a href="tel:911">911</a>. Mental health crisis: call or text <a href="tel:988">988</a>. Anything else: <a href="tel:311">311</a>.</p>
+    </footer>
+  </main>
+
+  <template id="card-tpl">
+    <article class="card">
+      <div class="card-head">
+        <h2 class="name"></h2>
+        <span class="badge"></span>
+      </div>
+      <p class="why"></p>
+      <p class="offers"></p>
+      <dl>
+        <dt>Where</dt><dd class="where"></dd>
+        <dt>Hours</dt><dd class="hours"></dd>
+        <dt>Who can go</dt><dd class="eligibility"></dd>
+        <dt>Bring</dt><dd class="bring"></dd>
+        <dt>Languages</dt><dd class="languages"></dd>
+      </dl>
+      <div class="actions">
+        <a class="call button"></a>
+        <a class="map button secondary" target="_blank" rel="noopener">Map</a>
+        <button type="button" class="copy secondary">Copy</button>
+      </div>
+      <p class="verified"></p>
+    </article>
+  </template>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

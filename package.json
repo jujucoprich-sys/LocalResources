@@ -1,0 +1,18 @@
+{
+  "name": "brooklyn-resource-finder",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Turn a situation described in plain words into 2-3 verified Brooklyn food and housing next steps.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test",
+    "check-data": "node scripts/check-data.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.132.1"
+  }
+}
