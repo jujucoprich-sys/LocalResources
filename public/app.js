@@ -7,9 +7,23 @@ const tpl = document.getElementById("card-tpl");
 fetch("/api/info")
   .then((r) => r.json())
   .then((info) => {
-    if (info.sample) document.getElementById("sample-banner").hidden = false;
+    const banner = document.getElementById("data-banner");
+    if (info.sample) {
+      banner.textContent = "Demo mode: these listings are made up. Don't refer anyone to them.";
+      banner.hidden = false;
+    } else if (info.unverified > 0) {
+      banner.textContent = `Draft list: ${info.unverified} of ${info.count} places haven't been confirmed by phone yet. Call before sending anyone.`;
+      banner.hidden = false;
+    }
   })
   .catch(() => {});
+
+for (const chip of document.querySelectorAll("[data-example]")) {
+  chip.addEventListener("click", () => {
+    document.getElementById("situation").value = chip.dataset.example;
+    form.requestSubmit();
+  });
+}
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -27,12 +41,17 @@ function telHref(phone) {
   return "tel:" + phone.replace(/[^\d+]/g, "");
 }
 
+// Addresses outside Brooklyn (citywide intake sites) name their borough.
+function mapQuery(address) {
+  return /\b(Bronx|Manhattan|Queens|Staten Island)\b/i.test(address) ? `${address}, NY` : `${address}, Brooklyn, NY`;
+}
+
 // Plain-text version a worker can paste into a text message for the person.
 function asText(r) {
   return [
     r.name,
-    r.address + (r.transit ? ` (${r.transit})` : ""),
-    `Phone: ${r.phone}`,
+    r.address ? r.address + (r.transit ? ` (${r.transit})` : "") : "",
+    r.phone ? `Phone: ${r.phone}` : "",
     r.hours ? `Hours: ${r.hours}${r.hours_notes ? ". " + r.hours_notes : ""}` : r.hours_notes,
     r.what_to_bring ? `Bring: ${r.what_to_bring}` : "",
   ]
@@ -48,20 +67,27 @@ function renderCard(r) {
   badge.textContent = r.category === "food" ? "Food" : "Housing";
   badge.classList.add(r.category);
 
+  const top = card.querySelector(".card-top");
+  const pill = card.querySelector(".open-pill");
+  pill.textContent = r.open.label;
+  pill.classList.add(r.open.state);
+  if (!r.verified) top.append(el("span", "unverified", "Not yet verified"));
+
   card.querySelector(".why").textContent = r.why;
   const offers = card.querySelector(".offers");
   if (r.why === r.offers) offers.remove();
   else offers.textContent = r.offers;
 
   const where = card.querySelector(".where");
-  where.append(el("span", null, r.address));
+  where.append(el("span", null, r.address || "Phone or online only"));
+  if (r.neighborhood && r.address) where.append(el("span", "muted", r.neighborhood));
   if (r.transit) where.append(el("span", "muted", r.transit));
 
   const hours = card.querySelector(".hours");
-  hours.append(el("span", `open-state ${r.open.state}`, r.open.label));
   if (r.hours) hours.append(el("span", "muted", r.hours));
   if (r.hours_notes) hours.append(el("span", "note", r.hours_notes));
 
+  if (!r.hours && !r.hours_notes) hours.append(el("span", "muted", "Not listed, call first"));
   const fill = (sel, value) => {
     const dd = card.querySelector(sel);
     if (value) dd.textContent = value;
@@ -75,11 +101,21 @@ function renderCard(r) {
   fill(".languages", r.languages);
 
   const call = card.querySelector(".call");
-  call.href = telHref(r.phone);
-  call.textContent = `Call ${r.phone}`;
+  if (r.phone) {
+    call.href = telHref(r.phone);
+    call.textContent = `Call ${r.phone}`;
+  } else if (r.website) {
+    call.href = r.website.startsWith("http") ? r.website : `https://${r.website}`;
+    call.target = "_blank";
+    call.rel = "noopener";
+    call.textContent = `Visit ${r.website}`;
+  } else {
+    call.remove();
+  }
 
-  card.querySelector(".map").href =
-    "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(`${r.address}, Brooklyn, NY`);
+  const map = card.querySelector(".map");
+  if (r.address) map.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(mapQuery(r.address));
+  else map.remove();
 
   const copy = card.querySelector(".copy");
   copy.addEventListener("click", async () => {
@@ -92,7 +128,13 @@ function renderCard(r) {
     setTimeout(() => (copy.textContent = "Copy"), 2000);
   });
 
-  card.querySelector(".verified").textContent = `Last verified by phone on ${formatDate(r.last_verified)}`;
+  const verified = card.querySelector(".verified");
+  if (r.verified) {
+    verified.textContent = `Last verified by phone on ${formatDate(r.last_verified)}`;
+  } else {
+    verified.textContent = "Not confirmed by phone yet. Details come from public directories and may be out of date. Call before sending anyone.";
+    verified.classList.add("pending");
+  }
   return card;
 }
 

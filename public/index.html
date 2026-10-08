@@ -2,38 +2,53 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Brooklyn Resource Finder</title>
-  <meta name="description" content="Find verified food and housing help in Brooklyn in under a minute.">
+  <meta name="description" content="Find food and housing help in Brooklyn in under a minute.">
+  <meta name="theme-color" content="#0e6b5e">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <div id="sample-banner" class="banner" hidden>
-    Demo mode: these listings are made up. Don't refer anyone to them.
-  </div>
+  <header class="masthead">
+    <div class="wrap">
+      <p class="eyebrow">Brooklyn · Food &amp; urgent housing</p>
+      <h1>Find the next step.</h1>
+      <p class="lede">Describe the situation in plain words. Get two or three places that fit, with hours, what to bring, and who to call.</p>
+    </div>
+  </header>
 
-  <main>
-    <header>
-      <h1>Brooklyn Resource Finder</h1>
-      <p class="sub">Food and urgent housing help. Every place listed has been checked by phone.</p>
-    </header>
+  <main class="wrap">
+    <div id="data-banner" class="banner" hidden></div>
 
-    <form id="search" autocomplete="off">
-      <label for="situation">What's going on?</label>
+    <form id="search" class="panel" autocomplete="off">
+      <label for="situation" class="label">What's going on?</label>
       <textarea id="situation" name="situation" rows="4" maxlength="1000" required
         placeholder="Mom with 2 kids, evicted yesterday, no food at home, near Brownsville, speaks Spanish."></textarea>
-      <p class="privacy" id="privacy-note">
-        <strong>No names, birthdays, addresses or ID numbers.</strong> Describe the situation only. Nothing you type is saved.
+
+      <div class="examples" aria-label="Try an example">
+        <span class="examples-label">Try:</span>
+        <button type="button" class="chip" data-example="Mom with 2 kids, evicted yesterday, no food at home, near Brownsville, speaks Spanish.">Family evicted</button>
+        <button type="button" class="chip" data-example="Single man, lost his room last night, nowhere to sleep, in East New York.">Nowhere to sleep</button>
+        <button type="button" class="chip" data-example="Older woman in Crown Heights, behind on rent, landlord sent court papers, no food in the fridge.">Behind on rent</button>
+        <button type="button" class="chip" data-example="Needs a hot meal today in Bed-Stuy, doesn't have ID.">Hot meal, no ID</button>
+      </div>
+
+      <p class="privacy">
+        <svg aria-hidden="true" viewBox="0 0 20 20" width="16" height="16"><path fill="currentColor" d="M10 1.5 3 4.3v5.2c0 4.3 3 8.1 7 9 4-.9 7-4.7 7-9V4.3L10 1.5Zm0 2.1 5 2v3.9c0 3.2-2.1 6.1-5 6.9-2.9-.8-5-3.7-5-6.9V5.6l5-2Z"/></svg>
+        <span><strong>No names, birthdays, addresses or ID numbers.</strong> Nothing you type is saved.</span>
       </p>
 
       <div class="row">
         <div class="field">
-          <label for="zip">Zip code <span class="optional">(optional)</span></label>
+          <label for="zip" class="label">Zip code <span class="optional">optional</span></label>
           <input id="zip" name="zip" inputmode="numeric" pattern="\d{5}" maxlength="5" placeholder="11212">
         </div>
         <fieldset class="field">
-          <legend>Needs help</legend>
+          <legend class="label">Needs help</legend>
           <div class="toggle">
             <input type="radio" id="today" name="urgency" value="today" checked><label for="today">Today</label>
             <input type="radio" id="week" name="urgency" value="week"><label for="week">This week</label>
@@ -41,23 +56,24 @@
         </fieldset>
       </div>
 
-      <button type="submit" id="go">Find next steps</button>
+      <button type="submit" id="go" class="primary">Find next steps</button>
     </form>
 
     <section id="status" aria-live="polite"></section>
     <section id="results" aria-live="polite"></section>
 
-    <footer>
-      <p>In an emergency call <a href="tel:911">911</a>. Mental health crisis: call or text <a href="tel:988">988</a>. Anything else: <a href="tel:311">311</a>.</p>
+    <footer class="foot">
+      <p><strong>Emergency:</strong> <a href="tel:911">911</a> · <strong>Mental health crisis:</strong> call or text <a href="tel:988">988</a> · <strong>Anything else:</strong> <a href="tel:311">311</a></p>
     </footer>
   </main>
 
   <template id="card-tpl">
     <article class="card">
-      <div class="card-head">
-        <h2 class="name"></h2>
+      <div class="card-top">
         <span class="badge"></span>
+        <span class="open-pill"></span>
       </div>
+      <h2 class="name"></h2>
       <p class="why"></p>
       <p class="offers"></p>
       <dl>
@@ -68,8 +84,8 @@
         <dt>Languages</dt><dd class="languages"></dd>
       </dl>
       <div class="actions">
-        <a class="call button"></a>
-        <a class="map button secondary" target="_blank" rel="noopener">Map</a>
+        <a class="call primary"></a>
+        <a class="map secondary" target="_blank" rel="noopener">Map</a>
         <button type="button" class="copy secondary">Copy</button>
       </div>
       <p class="verified"></p>

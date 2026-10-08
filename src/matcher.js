@@ -13,6 +13,8 @@ Rules:
 - If the situation has more than one need (e.g. food and housing), cover the most urgent need first, then the others if a listing fits.
 - Respect eligibility. Don't recommend a listing the person clearly doesn't qualify for (e.g. a men's shelter for a mother with children).
 - If the worker needs help today, prefer listings that are open now or later today. Respect hours_notes.
+- Prefer listings with verified: true. Unverified listings may be recommended when they fit clearly better; the app labels them "call first".
+- Some listings are citywide intake sites outside Brooklyn (e.g. PATH for families with children). Recommend them when the situation requires that intake.
 - Prefer listings in or near the person's neighborhood or zip, and ones that speak the person's language when it's mentioned.
 - "why" is one short sentence, in plain words, saying why this option fits this situation. Do not state addresses, phone numbers, or hours in "why"; those are shown to the worker from the verified data.
 - If nothing in the list fits a need, set nothing_fits to true for that case and say so plainly in "message" (one or two sentences). The app will show NYC 311 and crisis hotlines. Needs outside food and urgent housing (jobs, health care, benefits other than SNAP) are not covered by this list yet.
@@ -97,9 +99,41 @@ export async function matchWithClaude(query, listings, { client, now = new Date(
 
 const NEED_WORDS = {
   food: ["food", "hungry", "hunger", "eat", "meal", "pantry", "groceries", "grocery", "snap", "ebt", "food stamps", "formula", "lunch", "dinner", "breakfast", "soup kitchen", "comida", "hambre"],
-  housing: ["evict", "eviction", "evicted", "homeless", "shelter", "housing", "rent", "landlord", "lockout", "locked out", "sleeping", "street", "couch", "nowhere to stay", "place to stay", "housing court", "marshal", "arrears", "desalojo", "vivienda", "albergue"],
+  housing: ["evict", "eviction", "evicted", "homeless", "shelter", "sleep", "nowhere", "kicked out", "lost his room", "lost her room", "drop-in", "court papers", "behind on rent", "housing", "rent", "landlord", "lockout", "locked out", "sleeping", "street", "couch", "nowhere to stay", "place to stay", "housing court", "marshal", "arrears", "desalojo", "vivienda", "albergue"],
 };
 const LANGUAGES = ["spanish", "chinese", "mandarin", "cantonese", "haitian creole", "creole", "russian", "arabic", "bengali", "urdu", "polish", "yiddish", "french"];
+
+// Situation words that point to a kind of help, matched against the
+// listing's own text: [situation pattern, listing pattern, score, reason].
+const NO_ID = /\bno id\b|without (an )?id|(doesn'?t|does not|don'?t) have (an )?id/i;
+const TOPICS = [
+  [/\b(court|lawyer|attorney|marshal|lockout|locked out|landlord|evict)/i, /lawyer|legal|eviction defense|court/i, 3, "free legal help"],
+  [/\b(rent|arrears|behind)/i, /back rent|rent help|eviction prevention/i, 3, "help with back rent"],
+  [/\b(kids?|children|child|baby|pregnant|families)\b/i, /families with children/i, 4, "for families with children"],
+  [/\b(sleep|street|nowhere|tonight|homeless|shelter|lost (his|her|their) room|kicked out)/i, /intake|drop-in|shelter/i, 3, "a place to stay"],
+  [/\b(meal|hungry|hot food|eat)/i, /meal|soup kitchen/i, 2, "serves meals"],
+  [NO_ID, /no id needed|not turned away/i, 2, "no ID needed"],
+];
+const NEIGHBORHOOD_ALIASES = [
+  [/\bbed[- ]?stuy\b/gi, "Bedford-Stuyvesant"],
+  [/\beny\b/gi, "East New York"],
+];
+
+// Rules out listings the person clearly can't use, judged from the
+// eligibility text. Keyword mode only; the AI reads eligibility itself.
+function ineligible(listing, text) {
+  const kids = /\b(kids?|children|child|baby|pregnant|son|daughter)\b/i.test(text);
+  const woman = /\b(woman|women|female|she|her|mom|mother)\b/i.test(text);
+  const man = /\b(man|men|male|he|his|dad|father)\b/i.test(text);
+  const e = listing.eligibility;
+  if (/single adult men/i.test(e)) return kids || (woman && !man);
+  if (/single adult women/i.test(e)) return kids || (man && !woman);
+  if (/families with children/i.test(e)) return !kids;
+  if (/no children under 21/i.test(e)) return kids || /\bsingle\b/i.test(text) || (!/\b(couple|partner|wife|husband|family)\b/i.test(text));
+  if (NO_ID.test(text) && /\bID required/i.test(listing.what_to_bring)) return true;
+  if (/single adults/i.test(e)) return kids;
+  return false;
+}
 
 function mentions(text, word) {
   return new RegExp(`\\b${word.replace(/\s+/g, "\\s+")}`, "i").test(text);
@@ -112,6 +146,7 @@ export function detectNeeds(text) {
 }
 
 export function matchWithKeywords({ situation, zip, urgency }, listings, { now = new Date() } = {}) {
+  for (const [re, name] of NEIGHBORHOOD_ALIASES) situation = situation.replace(re, name);
   const needs = detectNeeds(situation);
   if (needs.length === 0) {
     return {
@@ -124,7 +159,7 @@ export function matchWithKeywords({ situation, zip, urgency }, listings, { now =
   const languages = LANGUAGES.filter((lang) => mentions(situation, lang));
 
   const scored = listings
-    .filter((l) => needs.includes(l.category))
+    .filter((l) => needs.includes(l.category) && !ineligible(l, situation))
     .map((l) => {
       const reasons = [l.category === "food" ? "Food help" : "Housing help"];
       let score = 0;
@@ -135,6 +170,14 @@ export function matchWithKeywords({ situation, zip, urgency }, listings, { now =
       } else if (l.neighborhood && mentions(situation, l.neighborhood)) {
         score += 3;
         reasons.push(`in ${l.neighborhood}`);
+      }
+      if (l.verified) score += 1;
+      const listingText = `${l.name} ${l.offers} ${l.eligibility} ${l.what_to_bring}`;
+      for (const [want, has, points, reason] of TOPICS) {
+        if (want.test(situation) && has.test(listingText)) {
+          score += points;
+          reasons.push(reason);
+        }
       }
       const status = openStatus(l.hours, now).state;
       if (status === "open") {
@@ -214,6 +257,7 @@ export function buildResponse(match, listings, now = new Date()) {
       languages: l.languages,
       website: l.website,
       last_verified: l.last_verified,
+      verified: l.verified,
     });
     if (results.length >= MAX_RESULTS) break;
   }

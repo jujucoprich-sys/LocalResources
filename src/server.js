@@ -11,15 +11,19 @@ const PUBLIC_DIR = path.join(ROOT, "public");
 const PORT = Number(process.env.PORT || 3000);
 const MAX_SITUATION_CHARS = 1000;
 
-// data/listings.csv is your verified list. Until it exists, the app runs on
-// made-up sample data and says so on every page.
+// data/listings.csv is your list. Until it exists, the app runs on made-up
+// sample data and says so on every page.
 const realPath = path.join(ROOT, "data", "listings.csv");
 const LISTINGS_PATH = process.env.LISTINGS_CSV || (fs.existsSync(realPath) ? realPath : path.join(ROOT, "data", "sample-listings.csv"));
 const IS_SAMPLE = path.basename(LISTINGS_PATH).startsWith("sample");
 const FALLBACK = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "fallback-resources.json"), "utf8"));
 
-const { listings, errors, warnings } = loadListings(LISTINGS_PATH);
-console.log(`Loaded ${listings.length} listings from ${path.relative(ROOT, LISTINGS_PATH)}${IS_SAMPLE ? " (SAMPLE DATA, not real places)" : ""}`);
+const ONLY_VERIFIED = process.env.ONLY_VERIFIED === "1";
+const loaded = loadListings(LISTINGS_PATH);
+const { errors, warnings } = loaded;
+const listings = ONLY_VERIFIED ? loaded.listings.filter((l) => l.verified) : loaded.listings;
+const UNVERIFIED = listings.filter((l) => !l.verified).length;
+console.log(`Loaded ${listings.length} listings (${UNVERIFIED} not yet verified) from ${path.relative(ROOT, LISTINGS_PATH)}${IS_SAMPLE ? " (SAMPLE DATA, not real places)" : ""}`);
 for (const e of errors) console.warn(`  skipped ${e}`);
 if (warnings.length) console.warn(`  ${warnings.length} warnings, run "npm run check-data" for details`);
 
@@ -43,7 +47,7 @@ function rateLimited(ip) {
 const SECURITY_HEADERS = {
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "no-referrer",
-  "Content-Security-Policy": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'",
+  "Content-Security-Policy": "default-src 'self'; img-src 'self' data:; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self'",
 };
 
 function sendJson(res, status, body) {
@@ -129,7 +133,7 @@ const server = http.createServer(async (req, res) => {
   try {
     if (req.method === "POST" && req.url === "/api/search") return await handleSearch(req, res);
     if (req.method === "GET" && req.url === "/api/info") {
-      return sendJson(res, 200, { sample: IS_SAMPLE, count: listings.length, ai: AI_ENABLED, emergency: FALLBACK });
+      return sendJson(res, 200, { sample: IS_SAMPLE, count: listings.length, unverified: UNVERIFIED, ai: AI_ENABLED, emergency: FALLBACK });
     }
     if (req.method === "GET" || req.method === "HEAD") return serveStatic(req, res);
     res.writeHead(405, SECURITY_HEADERS);

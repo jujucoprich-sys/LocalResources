@@ -14,7 +14,7 @@ export ANTHROPIC_API_KEY=sk-ant-...   # optional, see "How matching works"
 npm start                             # http://localhost:3000
 ```
 
-Until `data/listings.csv` exists, the app runs on **made-up sample listings** and shows a red "Demo mode" banner on every page.
+`data/listings.csv` holds 41 real places that haven't been verified by phone yet. The page labels each one "Not yet verified" and shows a banner until they're confirmed. Set `ONLY_VERIFIED=1` before real use to hide unverified rows. Without `data/listings.csv`, the app falls back to made-up sample listings with a "Demo mode" banner.
 
 ## Your listings spreadsheet
 
@@ -26,22 +26,22 @@ This is the core asset. Keep it in Google Sheets or Excel, then export it as CSV
 | `name` | yes | |
 | `category` | yes | `food` or `housing` |
 | `offers` | yes | What they do, in plain words |
-| `address` | yes | |
+| `address` | one of these three | Leave blank for phone- or online-only help |
 | `neighborhood` | | Helps match "near Brownsville" |
-| `zip` | yes | 5 digits |
+| `zip` | | 5 digits |
 | `transit` | | Nearest subway or bus |
 | `hours` | | Strict format, so "open now" can be worked out (see below). Blank shows "Hours unknown, call first". |
 | `hours_notes` | | Anything irregular: "2nd Sat only", "line forms at 6pm", "by appointment" |
 | `eligibility` | | Who can go |
 | `what_to_bring` | | ID, proof of address, etc. |
-| `phone` | yes | |
+| `phone` | one of these three | |
 | `languages` | | e.g. `English, Spanish` |
-| `website` | | |
-| `last_verified` | yes | `YYYY-MM-DD` of your last phone call |
+| `website` | one of these three | |
+| `last_verified` | | `YYYY-MM-DD` of your last phone call. Blank means "Not yet verified". |
 | `verified_by` | | Not shown to users or sent to the AI |
 | `internal_notes` | | Not shown to users or sent to the AI |
 
-**Starting point:** `data/call-sheet-draft.csv` has 42 real Brooklyn places (Brownsville, East New York, Bed-Stuy, Crown Heights) plus the citywide shelter intake sites, gathered from public directories in October 2026. None are verified. The `to_confirm_on_call` column lists what each call needs to settle, and `sources` lists where each row came from. After each call, fix the row, fill in `last_verified`, and copy it into `data/listings.csv`. The app ignores the two extra columns.
+**It's also your call sheet.** The 42 rows (Brownsville, East New York, Bed-Stuy, Crown Heights, plus the citywide shelter intake sites) came from public directories in October 2026. The `to_confirm_on_call` column lists what each call needs to settle, and `sources` lists where each row came from. After each call, fix the row and fill in `last_verified`. The label then changes to "Last verified by phone on …". The app ignores the two extra columns.
 
 **Hours format:** `Mon-Fri 09:00-17:00; Sat 10:00-14:00`. Use 24-hour time. For two windows on the same days, list both: `Tue,Thu 12:00-14:00 16:00-18:00`. Overnight: `Mon-Sun 19:00-24:00 00:00-08:00`. Always open: `24/7`.
 
@@ -51,7 +51,7 @@ This is the core asset. Keep it in Google Sheets or Excel, then export it as CSV
 npm run check-data
 ```
 
-It lists rows with errors (missing address, unreadable hours, bad date, duplicate id) and rows not verified in the last 90 days. **Rows with errors are left out of search**, so a typo never turns into a wrong address or hour on someone's screen.
+It lists rows with errors (no address, phone or website; unreadable hours; bad date; duplicate id), rows not verified yet, and rows not verified in the last 90 days. **Rows with errors are left out of search**, so a typo never turns into a wrong address or hour on someone's screen.
 
 ## How matching works
 
@@ -62,7 +62,7 @@ It lists rows with errors (missing address, unreadable hours, bad date, duplicat
    - replaces a "why" line that mentions a phone number or time with the listing's own description.
 
    Claude also respects eligibility (no men's shelter for a mother with kids), prefers places open now when help is needed today, and flags text that looks like it has a name in it.
-3. **Keyword mode** (no API key, or if the AI call fails): it matches on words like "food", "evicted" and "shelter", the zip code, open-now status and language. It doesn't check eligibility, and the page says so.
+3. **Keyword mode** (no API key, or if the AI call fails): it matches on words like "food", "evicted", "court papers" and "nowhere to sleep", plus the neighborhood, zip, open-now status and language. It applies a few simple eligibility rules (no family intake for a single adult, no "ID required" place when the person has no ID). The page tells workers to check eligibility themselves.
 4. If nothing fits, or there are fewer than 2 results, the page shows 311, 988 and 911 (from `data/fallback-resources.json`).
 
 The model is `claude-opus-5-5` at low effort (set `CLAUDE_MODEL` to change it). The listings block is prompt-cached, so repeat searches mostly pay for the short situation text. The request opts into server-side refusal fallbacks (`fallbacks: "default"`), so if the primary model declines a request, another model can answer it.
@@ -73,6 +73,7 @@ The model is `claude-opus-5-5` at low effort (set `CLAUDE_MODEL` to change it). 
 |---|---|---|
 | `ANTHROPIC_API_KEY` | none | Turns on AI matching |
 | `CLAUDE_MODEL` | `claude-opus-5-5` | |
+| `ONLY_VERIFIED` | off | `1` hides listings without a `last_verified` date |
 | `USE_AI` | on | `USE_AI=0` forces keyword mode |
 | `PORT` | `3000` | |
 | `LISTINGS_CSV` | `data/listings.csv` | Falls back to the sample file if missing |

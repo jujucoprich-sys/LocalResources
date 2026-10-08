@@ -26,7 +26,7 @@ export const COLUMNS = [
   "internal_notes", // never shown to users or sent to the AI
 ];
 
-const REQUIRED = ["id", "name", "category", "offers", "address", "zip", "phone", "last_verified"];
+const REQUIRED = ["id", "name", "category", "offers"];
 export const STALE_AFTER_DAYS = 90;
 
 function daysSince(isoDate, now = new Date()) {
@@ -34,7 +34,9 @@ function daysSince(isoDate, now = new Date()) {
 }
 
 // Checks every row. Rows with errors are excluded from search, so a typo can
-// never turn into a wrong address or hour shown to a worker.
+// never turn into a wrong address or hour shown to a worker. Rows without a
+// last_verified date are kept but marked unverified; the page labels them
+// "call first", and ONLY_VERIFIED=1 on the server hides them entirely.
 export function validateListings(rows, now = new Date()) {
   const errors = [];
   const warnings = [];
@@ -48,6 +50,7 @@ export function validateListings(rows, now = new Date()) {
     for (const col of REQUIRED) {
       if (!r[col]) rowErrors.push(`missing ${col}`);
     }
+    if (!r.address && !r.phone && !r.website) rowErrors.push("needs at least an address, phone or website");
     if (r.id && seen.has(r.id)) rowErrors.push(`duplicate id ${r.id}`);
     if (r.category && !CATEGORIES.includes(r.category.toLowerCase())) {
       rowErrors.push(`category must be one of: ${CATEGORIES.join(", ")}`);
@@ -62,6 +65,7 @@ export function validateListings(rows, now = new Date()) {
         warnings.push(`${where}: last verified ${daysSince(r.last_verified, now)} days ago, call again`);
       }
     }
+    if (!r.last_verified) warnings.push(`${where}: not verified yet, shown with a "call first" label`);
     const hours = parseHours(r.hours);
     if (hours.error) rowErrors.push(`hours: ${hours.error}`);
     if (hours.empty) warnings.push(`${where}: no hours, will show "Hours unknown, call first"`);
@@ -73,6 +77,7 @@ export function validateListings(rows, now = new Date()) {
       const listing = {};
       for (const col of COLUMNS) listing[col] = r[col] ?? "";
       listing.category = listing.category.toLowerCase();
+      listing.verified = Boolean(listing.last_verified);
       valid.push(listing);
     }
   }
@@ -92,6 +97,7 @@ export function listingForModel(l) {
     name: l.name,
     category: l.category,
     offers: l.offers,
+    address: l.address,
     neighborhood: l.neighborhood,
     zip: l.zip,
     hours: l.hours,
@@ -99,5 +105,6 @@ export function listingForModel(l) {
     eligibility: l.eligibility,
     what_to_bring: l.what_to_bring,
     languages: l.languages,
+    verified: l.verified,
   };
 }

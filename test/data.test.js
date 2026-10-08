@@ -50,15 +50,25 @@ test("listings: bad rows are excluded with a reason", () => {
       { ...base, _row: 3 }, // duplicate id
       { ...base, _row: 4, id: "F2", category: "jobs" },
       { ...base, _row: 5, id: "F3", hours: "9 to 5" },
-      { ...base, _row: 6, id: "F4", address: "" },
+      { ...base, _row: 6, id: "F4", address: "", phone: "", website: "" },
       { ...base, _row: 7, id: "F5", last_verified: "2026-01-01" }, // stale but usable
+      { ...base, _row: 8, id: "F6", last_verified: "", address: "" }, // unverified, phone only
     ],
     WED_230PM
   );
-  assert.deepEqual(listings.map((l) => l.id), ["F1", "F5"]);
+  assert.deepEqual(listings.map((l) => l.id), ["F1", "F5", "F6"]);
+  assert.equal(listings[0].verified, true);
+  assert.equal(listings[2].verified, false);
   assert.equal(errors.length, 4);
   assert.match(errors[0], /duplicate/);
   assert.match(warnings.join(), /F5.*call again/);
+});
+
+test("listings: the real call sheet loads", () => {
+  const { listings, errors } = loadListings("data/listings.csv", WED_230PM);
+  assert.ok(listings.length >= 40);
+  assert.ok(errors.length <= 1); // H09 has no address or phone yet
+  assert.ok(listings.every((l) => ["food", "housing"].includes(l.category)));
 });
 
 test("privacy: strips phone numbers, emails, IDs, dates", () => {
