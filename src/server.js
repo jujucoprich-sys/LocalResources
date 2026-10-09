@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadListings } from "./listings.js";
 import { redact } from "./privacy.js";
-import { createStreetView } from "./streetview.js";
+import { createPhotos } from "./photos.js";
 import { browseListings, buildResponse, categoryCounts, matchWithClaude, matchWithKeywords } from "./matcher.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -31,8 +31,8 @@ if (warnings.length) console.warn(`  ${warnings.length} warnings, run "npm run c
 const AI_ENABLED = process.env.USE_AI !== "0" && Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
 console.log(AI_ENABLED ? "AI matching on" : "AI matching off (no ANTHROPIC_API_KEY), using keyword matching");
 
-const streetView = createStreetView();
-console.log(streetView.enabled ? "Street View photos on" : "Street View photos off (no GOOGLE_MAPS_API_KEY), using drawn thumbnails");
+const photos = createPhotos();
+console.log(`Photos: Wikimedia Commons on; Google Street View ${photos.providers.google ? "on" : "off (no GOOGLE_MAPS_API_KEY)"}; Mapillary ${photos.providers.mapillary ? "on" : "off (no MAPILLARY_TOKEN)"}`);
 const byId = new Map(listings.map((l) => [l.id, l]));
 
 // Workers flag wrong or outdated details from a listing. Reports go to
@@ -58,21 +58,30 @@ async function handleReport(req, res) {
   sendJson(res, 200, { ok: true });
 }
 
-async function handlePhoto(req, res, id) {
+// /api/photo/<id>/info says whether there's a photo and whose it is (for the
+// credit line); /api/photo/<id> is the image itself. 404 means "no photo",
+// and the page keeps its drawn thumbnail.
+async function handlePhoto(req, res, id, wantInfo) {
   const listing = byId.get(id);
   let photo = null;
+  let image = null;
   try {
-    photo = listing ? await streetView.photo(listing) : null;
+    photo = listing ? await photos.find(listing) : null;
+    if (photo && !wantInfo) image = await photo.image();
   } catch (err) {
-    console.error(`Street View failed for ${id}: ${err.message}`);
+    console.error(`Photo failed for ${id}: ${err.message}`);
   }
-  if (!photo) {
-    // The page falls back to its drawn thumbnail.
-    res.writeHead(404, { ...SECURITY_HEADERS, "Cache-Control": "public, max-age=86400" });
+  const cache = { "Cache-Control": "public, max-age=86400" };
+  if (!photo || (!wantInfo && !image)) {
+    res.writeHead(404, { ...SECURITY_HEADERS, ...cache });
     return res.end();
   }
-  res.writeHead(200, { ...SECURITY_HEADERS, "Content-Type": photo.contentType, "Cache-Control": "public, max-age=86400" });
-  res.end(photo.body);
+  if (wantInfo) {
+    res.writeHead(200, { ...SECURITY_HEADERS, ...cache, "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ src: `/api/photo/${id}`, provider: photo.provider, credit: photo.credit, link: photo.link }));
+  }
+  res.writeHead(200, { ...SECURITY_HEADERS, ...cache, "Content-Type": image.contentType });
+  res.end(image.body);
 }
 
 // Simple per-IP limit so a shared link can't run up the API bill.
@@ -179,10 +188,10 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && req.url === "/api/search") return await handleSearch(req, res);
     if (req.method === "POST" && req.url === "/api/report") return await handleReport(req, res);
     if (req.method === "GET" && req.url === "/api/info") {
-      return sendJson(res, 200, { sample: IS_SAMPLE, count: listings.length, unverified: UNVERIFIED, categories: categoryCounts(listings), photos: streetView.enabled, ai: AI_ENABLED, emergency: FALLBACK });
+      return sendJson(res, 200, { sample: IS_SAMPLE, count: listings.length, unverified: UNVERIFIED, categories: categoryCounts(listings), photos: true, ai: AI_ENABLED, emergency: FALLBACK });
     }
-    const photoMatch = req.method === "GET" && /^\/api\/photo\/([\w-]+)$/.exec(req.url);
-    if (photoMatch) return await handlePhoto(req, res, photoMatch[1]);
+    const photoMatch = req.method === "GET" && /^\/api\/photo\/([\w-]+)(\/info)?$/.exec(req.url);
+    if (photoMatch) return await handlePhoto(req, res, photoMatch[1], Boolean(photoMatch[2]));
     if (req.method === "GET" && req.url.startsWith("/api/browse")) {
       const q = new URL(req.url, "http://x").searchParams;
       const results = browseListings(listings, {

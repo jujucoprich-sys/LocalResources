@@ -395,6 +395,7 @@ export function toCard(l, why, now = new Date()) {
     website: l.website,
     last_verified: l.last_verified,
     verified: l.verified,
+    has_photo: Boolean(l.photo_commons || l.address),
   };
 }
 

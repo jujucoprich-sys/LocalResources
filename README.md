@@ -80,20 +80,22 @@ It lists rows with errors (no address, phone or website; unreadable hours; bad d
 
 The model is `claude-opus-5-5` at low effort (set `CLAUDE_MODEL` to change it). The listings block is prompt-cached, so repeat searches mostly pay for the short situation text. The request opts into server-side refusal fallbacks (`fallbacks: "default"`), so if the primary model declines a request, another model can answer it.
 
-## Thumbnails and Street View photos
+## Thumbnails and photos
 
-Every card has a **drawn thumbnail**: the borough's skyline (or a phone and laptop for phone and online help) in the category's colors, with small details that vary per listing. Nothing to set up, and new listings get one automatically.
+Every card has a **drawn thumbnail**: the borough's skyline (or a phone and laptop for phone and online help) in the category's colors. Nothing to set up, and new listings get one automatically.
 
-With a Google Maps key, walk-in places also get a **Street View photo** of the building, which fades in over the drawing. Places Google has no photo for, and phone or online services, keep the drawing.
+In the hosted app, real photos fade in over the drawing when one is available, with the photographer and license shown as a link on the photo. The app tries, in order:
 
-1. In [Google Cloud](https://console.cloud.google.com/), create a project, turn on billing, and enable only the **Street View Static API**.
-2. Create an API key and restrict it to that API.
-3. Optional: copy the **URL signing secret** from the Street View Static API page; signed requests can't be reused if the key leaks.
-4. Set `GOOGLE_MAPS_API_KEY` (and `GOOGLE_MAPS_SIGNING_SECRET`) on the server and restart.
+1. **Wikimedia Commons** (free, no key). Put a Commons file name in a listing's `photo_commons` column, e.g. `Harlem Hospital Center Lenox Avenue facade.jpg`. Pick photos from [Wikimedia Commons](https://commons.wikimedia.org/) that clearly show the entrance. 11 listings have one now (hospitals, the Brooklyn Central Library, Holy Apostles, the Brooklyn Children's Museum, the Museum of the Moving Image).
+2. **Google Street View** (paid, best coverage), if `GOOGLE_MAPS_API_KEY` is set:
+   1. In [Google Cloud](https://console.cloud.google.com/), create a project, turn on billing, and enable only the **Street View Static API**.
+   2. Create an API key and restrict it to that API. Optionally copy the **URL signing secret** too.
+   3. Set `GOOGLE_MAPS_API_KEY` (and `GOOGLE_MAPS_SIGNING_SECRET`) on the server.
 
-Cost: Google bills each photo shown (about $7 per 1,000 after the monthly free allowance). The server first asks Google whether a photo exists (free), so you never pay for blank ones, and each browser keeps a photo for a day. Google's terms don't allow storing Street View images, so the server fetches them when needed instead of saving copies. The key stays on the server; browsers only see `/api/photo/<id>`.
+   About $7 per 1,000 photos after the monthly free allowance. The server checks for free whether a photo exists first, and doesn't store images (Google's terms); browsers keep each one for a day.
+3. **Mapillary** (free, openly licensed street photos), if `MAPILLARY_TOKEN` is set. Get a free client token at [mapillary.com/dashboard/developers](https://www.mapillary.com/dashboard/developers). It's only used for places with exact coordinates (run `npm run geocode` first), so it never shows a random street near a zip code's center. It picks the closest regular (non-360°) photo within about 65 m.
 
-The demo link can't show photos (previews block outside images), so it always shows the drawings.
+Places none of these cover keep their drawing. The demo link can't load outside images, so it always shows drawings.
 
 ## Settings
 
@@ -107,6 +109,7 @@ The demo link can't show photos (previews block outside images), so it always sh
 | `LISTINGS_CSV` | `data/listings.csv` | Falls back to the sample file if missing |
 | `GOOGLE_MAPS_API_KEY` | none | Turns on Street View photos for walk-in places |
 | `GOOGLE_MAPS_SIGNING_SECRET` | none | Signs Street View requests (recommended) |
+| `MAPILLARY_TOKEN` | none | Turns on free Mapillary street photos (places with exact coordinates) |
 | `RATE_LIMIT_PER_MIN` | `20` | Searches per minute per IP, to protect the API bill |
 | `TRUST_PROXY` | off | Set to `1` on hosts behind a proxy (Render, Railway, Fly.io) so the limit applies per visitor, not to everyone at once |
 

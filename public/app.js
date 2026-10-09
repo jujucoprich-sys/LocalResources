@@ -325,21 +325,44 @@ function thumbnailSvg(r) {
   </svg>`;
 }
 
+// Photo info is looked up once per place per visit.
+const photoInfo = new Map();
+function lookupPhoto(id) {
+  if (!photoInfo.has(id)) {
+    photoInfo.set(id, fetch(`/api/photo/${encodeURIComponent(id)}/info`).then((res) => (res.ok ? res.json() : null)).catch(() => null));
+  }
+  return photoInfo.get(id);
+}
+
 function renderThumb(r) {
   const thumb = el("div", "thumb");
   thumb.innerHTML = thumbnailSvg(r);
-  if (photosEnabled && r.address) {
-    const img = new Image();
-    img.alt = `Street View of ${r.address}`;
-    img.loading = "lazy";
-    img.decoding = "async";
-    img.onload = () => {
-      img.classList.add("loaded");
-      thumb.classList.add("has-photo");
-    };
-    img.onerror = () => img.remove(); // no photo for this address: keep the drawing
-    img.src = `/api/photo/${encodeURIComponent(r.id)}`;
-    thumb.append(img, el("span", "photo-credit", "Street View"));
+  if (photosEnabled && r.has_photo) {
+    lookupPhoto(r.id).then((info) => {
+      if (!info) return; // no photo for this place: keep the drawing
+      const img = new Image();
+      img.alt = `Photo of ${r.name}`;
+      img.loading = "lazy";
+      img.decoding = "async";
+      img.onload = () => {
+        img.classList.add("loaded");
+        thumb.classList.add("has-photo");
+      };
+      img.onerror = () => {
+        img.remove();
+        credit.remove();
+      };
+      img.src = info.src;
+      // Photo credits are required by the licenses, so they link to the source.
+      const credit = el(info.link ? "a" : "span", "photo-credit", info.credit);
+      if (info.link) {
+        credit.href = info.link;
+        credit.target = "_blank";
+        credit.rel = "noopener";
+        credit.addEventListener("click", (e) => e.stopPropagation());
+      }
+      thumb.append(img, credit);
+    });
   }
   return thumb;
 }

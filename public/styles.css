@@ -366,8 +366,8 @@ textarea::placeholder, input::placeholder { color: var(--muted); opacity: 0.8; }
 
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .actions .call { flex: 1 1 100%; }
-.actions .secondary { flex: 1 1 0; }
-.actions a span, .actions button span { min-width: 0; overflow-wrap: anywhere; }
+.actions .secondary { flex: 1 1 auto; }
+.actions a span, .actions button span { min-width: 0; overflow-wrap: break-word; }
 .actions .icon svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .verified { margin: 0; font-size: 0.85rem; color: var(--muted); }
 .verified.pending { color: var(--warn-ink); }
@@ -624,7 +624,14 @@ textarea::placeholder, input::placeholder { color: var(--muted); opacity: 0.8; }
 .photo-credit {
   position: absolute;
   left: 8px;
+  right: 8px;
   bottom: 6px;
+  width: fit-content;
+  max-width: calc(100% - 16px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-decoration: none;
   font-size: 0.7rem;
   font-weight: 700;
   color: #fff;

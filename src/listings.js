@@ -25,6 +25,7 @@ export const COLUMNS = [
   "phone",
   "languages",
   "website",
+  "photo_commons", // optional: a Wikimedia Commons file name for this place's photo
   "last_verified", // YYYY-MM-DD of your last phone call
   "verified_by",
   "internal_notes", // never shown to users or sent to the AI
