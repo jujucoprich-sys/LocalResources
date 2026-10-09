@@ -105,11 +105,11 @@ const NEED_WORDS = {
   food: ["wic", "food", "hungry", "hunger", "eat", "meal", "pantry", "groceries", "grocery", "snap", "ebt", "food stamps", "formula", "lunch", "dinner", "breakfast", "soup kitchen", "comida", "hambre"],
   health: ["doctor", "clinic", "sick", "insurance", "medicaid", "medicine", "medication", "prescription", "prenatal", "dentist", "uninsured", "checkup", "health care", "healthcare", "injury", "pain"],
   mental_health: ["depress", "anxiety", "anxious", "suicid", "kill myself", "hopeless", "therapy", "therapist", "counsel", "mental", "stress", "panic", "grief", "grieving", "self-harm", "lonely", "loneliness", "crisis", "overwhelmed", "trauma"],
-  education: ["school", "enroll", "ged", "hse", "high school", "english class", "learn english", "esol", "literacy", "tutor", "homework", "class", "college", "computer skills", "learn to read", "resume", "job search"],
-  jobs: ["job", "jobs", "work", "unemploy", "laid off", "fired", "lost (my|his|her|their) job", "career", "hiring", "interview"],
+  education: ["school", "enroll", "ged", "hse", "high school", "english class", "learn english", "esol", "literacy", "college", "computer skills", "learn to read", "resume", "job search"],
+  jobs: ["job", "jobs", "need work", "find work", "looking for work", "out of work", "unemploy", "laid off", "fired", "lost (my|his|her|their) job", "career", "hiring", "interview"],
   legal: ["lawyer", "legal", "attorney", "immigra", "green card", "citizenship", "daca", "tps", "asylum", "deport", "visa", "court date", "sued", "debt collector"],
   safety: ["abuse", "abusive", "hits me", "hurting", "domestic violence", "unsafe at home", "partner hurt", "boyfriend hurt", "girlfriend hurt", "husband hurt", "wife hurt", "threaten", "stalk", "assault", "order of protection", "afraid of"],
-  community: ["volunteer", "metrocard", "fare", "id card", "idnyc", "taxes", "tax", "benefits", "older adult", "senior", "afterschool", "after school", "community", "mutual aid", "neighbors", "isolated", "city services", "311", "help line", "where to start"],
+  community: ["skate", "dance", "zumba", "fun", "hang out", "hangout", "video game", "gaming", "games", "study", "homework", "tutor", "camp", "summer program", "childcare", "babysit", "a break", "sports", "basketball", "gym", "swim", "pool", "fitness", "exercise", "work out", "workout", "museum", "zoo", "things to do", "bored", "activities", "recreation", "rec center", "volunteer", "metrocard", "fare", "id card", "idnyc", "taxes", "tax", "benefits", "older adult", "senior", "afterschool", "after school", "community", "mutual aid", "neighbors", "isolated", "city services", "311", "help line", "where to start"],
   housing: ["evict", "eviction", "evicted", "homeless", "shelter", "heat", "heating", "utility bill", "con ed", "sleep", "nowhere", "kicked out", "lost his room", "lost her room", "drop-in", "court papers", "behind on rent", "housing", "rent", "landlord", "lockout", "locked out", "sleeping", "street", "couch", "nowhere to stay", "place to stay", "housing court", "marshal", "arrears", "desalojo", "vivienda", "albergue"],
 };
 export const CATEGORY_LABELS = {
@@ -138,7 +138,14 @@ const TOPICS = [
   [NO_ID, /no id needed|not turned away/i, 2, "no ID needed"],
   [/\b(suicid|kill (my|him|her)self|self-harm|hopeless|crisis|want to die)/i, /crisis counseling/i, 5, "24/7 crisis support"],
   [LGBTQ, /LGBTQ/i, 4, "LGBTQ support"],
-  [/\bvolunteer/i, /volunteer (opportunities|office)/i, 5, "volunteering"],
+  [/\bvolunteer/i, /volunteer(?!-run)|clean up, plant/i, 5, "volunteering"],
+  [/\bskat/i, /skatepark/i, 6, "skatepark"],
+  [/\b(danc|zumba)/i, /dance/i, 6, "dance classes"],
+  [/\b(study|homework|tutor)/i, /homework|tutor|study/i, 4, "study help"],
+  [/\b(video ?games?|gaming|games|hang ?out|chill)/i, /video game|gaming|teen space|teen center/i, 5, "games and a place to hang out"],
+  [/\b(after ?school|camp|summer|childcare|babysit|a break|keep (my|the) kids|kids? (busy|activities))/i, /afterschool|summer program|community centers/i, 5, "free kids' programs"],
+  [/\b(gym|work ?out|exercise|fitness|sports|basketball|swim|pool)/i, /recreation center|fitness/i, 4, "gym and fitness"],
+  [/\b(museum|zoo|day out|things to do|fun|bored|free activities)/i, /museum|zoo|pay what you wish/i, 3, "free days out"],
   [/\b(teen|teenager|youth|young person|student|(1[0-9]|2[0-4])[- ]?(year|yr)s?[- ]old)\b/i, /teens|young people/i, 3, "for young people"],
   [/\b(uninsured|no insurance|undocumented|immigra|asylum|new arrival)/i, /immigration status|can't afford/i, 3, "any immigration status"],
   [/\b(ged|hse|high school (diploma|equivalency))/i, /HSE|GED/i, 4, "GED / HSE classes"],
@@ -148,7 +155,7 @@ const TOPICS = [
   [/\b(family|families|mom|mother|parent)\b/i, /NAMI|families/i, 1, "family support"],
   [/\b(immigra|green card|citizenship|daca|tps|asylum|deport|undocumented)/i, /immigration legal|immigration information/i, 4, "immigration help"],
   [/\b(abuse|abusive|hits me|hurting|domestic violence|unsafe|threaten|stalk|assault|afraid of)/i, /domestic violence|survivors/i, 5, "safety help"],
-  [/\b(job|work|unemploy|laid off|fired|hiring|career|interview)/i, /job search|unemployment claim/i, 3, "job search help"],
+  [/\b(job|work(?! ?out)|unemploy|laid off|fired|hiring|career|interview)/i, /job search|unemployment claim/i, 3, "job search help"],
   [/\b(laid off|fired|lost (my|his|her|their) job|unemploy)/i, /unemployment claim/i, 3, "unemployment benefits"],
   [/\b(older|senior|elderly|aging|grandm|grandf)\b/i, /older adults|60\+/i, 3, "for older adults"],
   [/\b(metrocard|subway|fare|transit)/i, /fare/i, 4, "half-price transit"],
@@ -194,6 +201,13 @@ export function personAge(text) {
   return null;
 }
 
+// A child's age from "my 10 year old daughter" / "my son, 8".
+export function childAge(text) {
+  const m = /\b(\d{1,2})\s*(?:-|\s)?(?:years?|yrs?)(?:\s*|-)old\s*(?:son|daughter|kid|child|boy|girl|brother|sister)\b/i.exec(text)
+    || /\b(?:son|daughter|kid|child|boy|girl)\s*,?\s*(?:is\s*|aged?\s*)?(\d{1,2})\b/i.exec(text);
+  return m ? Number(m[1]) : null;
+}
+
 // Age range a listing serves, read from the start of its eligibility text:
 // "Young people 14-24", "Single adults 18+", "Adults 17 and older",
 // "LGBTQ+ young people up to 24".
@@ -215,7 +229,8 @@ function ineligible(listing, text) {
   const kids = /\b(kids?|children|child|baby|pregnant|son|daughter)\b/i.test(text);
   const woman = /\b(woman|women|female|she|her|mom|mother)\b/i.test(text);
   const man = /\b(man|men|male|he|his|dad|father)\b/i.test(text);
-  const age = personAge(text);
+  // For activities, a parent asking for their child means the child's age counts.
+  const age = personAge(text) ?? (listing.category === "community" ? childAge(text) : null);
   const e = listing.eligibility;
   if (age !== null) {
     const { min, max } = ageLimits(e);
@@ -240,6 +255,7 @@ function mentions(text, word) {
 }
 
 export function detectNeeds(text) {
+  text = text.replace(/after[- ]school/gi, "afterschool"); // not a school need
   return Object.entries(NEED_WORDS)
     .filter(([, words]) => words.some((w) => mentions(text, w)))
     .map(([need]) => need);

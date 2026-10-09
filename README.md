@@ -19,7 +19,7 @@ npm start                             # http://localhost:3000
 ## Using the page
 
 - **Search:** describe the situation in plain words (or tap an example) and get the 2–3 best matches.
-- **Browse by need:** nine sections, each with its own icon and color: Food, Housing & shelter, Health care, Mental health, Safety, Legal help, Jobs, Education and Community. Open one to see everything in it, filter by borough (citywide services always show), and tick "Open now".
+- **Browse by need:** nine sections, each with its own icon and color: Food, Housing & shelter, Health care, Mental health, Safety, Legal help, Jobs, Education and Community & fun (skateparks, rec centers, free dance and fitness, free afterschool and summer programs, free museum days, teen centers, homework help and volunteering). Open one to see everything in it, filter by borough (citywide services always show), and tick "Open now".
 - Each card shows whether it's open now, where it is, hours, who can go and what to bring, with buttons to call, map, open the website or copy the details into a text message.
 
 ## Your listings spreadsheet

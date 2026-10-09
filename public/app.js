@@ -48,7 +48,7 @@ const CATEGORY_TILES = [
   { key: "legal", name: "Legal help", blurb: "Lawyers, immigration" },
   { key: "jobs", name: "Jobs", blurb: "Job centers, unemployment" },
   { key: "education", name: "Education", blurb: "GED, English, school" },
-  { key: "community", name: "Community", blurb: "Benefits, IDs, older adults" },
+  { key: "community", name: "Community & fun", blurb: "Skateparks, kids' programs, volunteering" },
 ];
 const CATEGORY_NAMES = Object.fromEntries(CATEGORY_TILES.map((c) => [c.key, c.name]));
 const BOROUGH_FILTERS = ["Manhattan", "Brooklyn", "Queens", "Bronx"];
@@ -166,7 +166,7 @@ function renderCard(r, { compact = false } = {}) {
 
   const where = r.address
     ? [r.address, [r.neighborhood, r.borough].filter((v, i, a) => v && v !== "Citywide" && a.indexOf(v) === i).join(", "), r.transit]
-    : [r.website ? "Online or by phone" : "By phone", r.neighborhood];
+    : [r.website ? "Online or by phone" : "By phone", r.neighborhood === "Online" ? "" : r.neighborhood];
   const hours = [r.hours ? prettyHours(r.hours) : "", r.hours_notes ? el("em", "note", r.hours_notes) : "", !r.hours && !r.hours_notes ? "Not listed, call first" : ""];
 
   const essentials = el("div", "meta-list");
@@ -189,7 +189,7 @@ function renderCard(r, { compact = false } = {}) {
 
   const actions = el("div", "actions");
   if (r.phone) actions.append(linkButton("primary call", telHref(r.phone), "phone", `Call ${r.phone}`));
-  else if (r.website) actions.append(linkButton("primary call", webHref(r.website), "link", `Open ${r.website}`, true));
+  else if (r.website) actions.append(linkButton("primary call", webHref(r.website), "link", `Open ${r.website.replace(/^https?:\/\//, "").split("/")[0]}`, true));
   if (r.address) {
     actions.append(linkButton("secondary", "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(mapQuery(r)), "map", "Map", true));
   }

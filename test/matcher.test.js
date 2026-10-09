@@ -147,3 +147,16 @@ test("keyword matcher: a 16-year-old never gets adult-only shelters", () => {
   const family = matchWithKeywords({ situation: "My 16 year old son and I were evicted", zip: "", urgency: "today" }, real, { now: WED_230PM }).results.map((r) => r.id);
   assert.ok(family.includes("H02"));
 });
+
+test("keyword matcher: fun, kids' programs, study spots and volunteering", () => {
+  const real = loadListings("data/listings.csv", WED_230PM).listings;
+  const ids = (situation) => matchWithKeywords({ situation, zip: "", urgency: "week" }, real, { now: WED_230PM }).results.map((r) => r.id);
+  assert.equal(ids("Teen in the Bronx wants somewhere to skateboard")[0], "R03");
+  assert.ok(ids("Looking for cheap dance classes for adults").includes("R12"));
+  assert.ok(!ids("My 10 year old daughter wants dance classes").includes("R12")); // adults-only class
+  assert.ok(ids("Mom needs a break, free afterschool for her kids").includes("R13"));
+  assert.equal(ids("Need a quiet place to study and get homework help")[0], "R21");
+  assert.ok(ids("Somewhere to hang out and play video games in Queens").includes("R22"));
+  assert.ok(ids("Want to volunteer on weekends").every((id) => id !== "K03"));
+  assert.ok(!ids("Cheap gym to work out in Brooklyn").some((id) => real.find((l) => l.id === id).category === "jobs"));
+});
