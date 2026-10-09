@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { loadListings } from "../src/listings.js";
-import { browseListings, buildResponse, categoryCounts, detectNeeds, matchWithClaude, matchWithKeywords } from "../src/matcher.js";
+import { ageLimits, browseListings, buildResponse, categoryCounts, detectNeeds, matchWithClaude, matchWithKeywords, personAge } from "../src/matcher.js";
 
 const WED_230PM = new Date("2026-10-07T18:30:00Z");
 const { listings } = loadListings("data/sample-listings.csv", WED_230PM);
@@ -117,4 +117,33 @@ test("browseListings: filters by category and borough, keeps citywide, open firs
   for (let i = 1; i < bronxFood.length; i++) assert.ok(order[bronxFood[i - 1].open.state] <= order[bronxFood[i].open.state]);
   assert.ok(browseListings(real, { category: "food", openNow: true }, WED_230PM).every((c) => c.open.state === "open"));
   assert.equal(Object.values(categoryCounts(real)).reduce((a, b) => a + b, 0), real.length);
+});
+
+test("personAge and ageLimits", () => {
+  assert.equal(personAge("Im 16 and need housing"), 16);
+  assert.equal(personAge("i'm 17, kicked out"), 17);
+  assert.equal(personAge("16 yo needs shelter"), 16);
+  assert.equal(personAge("22 year old, homeless"), 22);
+  assert.equal(personAge("My 16 year old son and I were evicted"), null);
+  assert.equal(personAge("I'm 3 kids short of a bus"), null);
+  assert.deepEqual(ageLimits("Young people 14-24."), { min: 14, max: 24 });
+  assert.deepEqual(ageLimits("Single adults 18+."), { min: 18, max: 200 });
+  assert.deepEqual(ageLimits("LGBTQ+ young people up to 24."), { min: 0, max: 24 });
+  assert.deepEqual(ageLimits("Anyone, regardless of income. Teens 14-17 can talk to peers."), { min: 0, max: 200 });
+});
+
+test("keyword matcher: a 16-year-old never gets adult-only shelters", () => {
+  const real = loadListings("data/listings.csv", WED_230PM).listings;
+  for (const situation of ["Im 16 and need housing", "i'm 16, nowhere to sleep in the Bronx", "16 yo needs shelter tonight in Queens"]) {
+    const picks = matchWithKeywords({ situation, zip: "", urgency: "today" }, real, { now: WED_230PM }).results.map((r) => real.find((l) => l.id === r.id));
+    assert.ok(picks.length > 0, situation);
+    for (const l of picks) {
+      const { min, max } = ageLimits(l.eligibility);
+      assert.ok(16 >= min && 16 <= max && !/single adult/i.test(l.eligibility), `${situation} -> ${l.name}`);
+    }
+  }
+  const adult = matchWithKeywords({ situation: "I am 30 and need shelter in Manhattan", zip: "", urgency: "today" }, real, { now: WED_230PM }).results.map((r) => real.find((l) => l.id === r.id));
+  assert.ok(!adult.some((l) => /young people/i.test(l.eligibility)));
+  const family = matchWithKeywords({ situation: "My 16 year old son and I were evicted", zip: "", urgency: "today" }, real, { now: WED_230PM }).results.map((r) => r.id);
+  assert.ok(family.includes("H02"));
 });

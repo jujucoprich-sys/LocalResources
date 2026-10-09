@@ -13,6 +13,7 @@ Rules:
 - If the situation has more than one need (e.g. food and housing), cover the most urgent need first, then the others if a listing fits.
 - If the person may be in danger of suicide or self-harm, put a 24/7 crisis line first (NYC 988) and say in "message" to call 911 if there is immediate danger.
 - Respect eligibility. Don't recommend a listing the person clearly doesn't qualify for (e.g. a men's shelter for a mother with children).
+- Respect age limits. If the person is under 18, never recommend adult-only places (18+, single adults, adult shelter intake); use youth drop-ins and youth shelters that serve their age. If they're over 24, don't recommend youth-only programs.
 - If the worker needs help today, prefer listings that are open now or later today. Respect hours_notes.
 - Prefer listings with verified: true. Unverified listings may be recommended when they fit clearly better; the app labels them "call first".
 - Some listings are citywide intake sites outside Brooklyn (e.g. PATH for families with children). Recommend them when the situation requires that intake.
@@ -131,7 +132,7 @@ const NO_ID = /\bno id\b|without (an )?id|(doesn'?t|does not|don'?t) have (an )?
 const TOPICS = [
   [/\b(court|lawyer|attorney|marshal|lockout|locked out|landlord|evict)/i, /lawyer|legal|eviction defense|court/i, 3, "free legal help"],
   [/\b(rent|arrears|behind)/i, /back rent|rent help|eviction prevention/i, 3, "help with back rent"],
-  [/\b(kids?|children|child|baby|pregnant|families)\b/i, /families with children/i, 4, "for families with children"],
+  [/\b(kids?|children|child|baby|pregnant|families|son|daughter)\b/i, /families with children/i, 4, "for families with children"],
   [/\b(sleep|street|nowhere|tonight|homeless|shelter|lost (his|her|their) room|kicked out)/i, /intake|drop-in|shelter/i, 3, "a place to stay"],
   [/\b(meal|hungry|hot food|eat|lunch|dinner|breakfast)/i, /meal|soup kitchen|lunch|breakfast|dinner/i, 2, "serves meals"],
   [NO_ID, /no id needed|not turned away/i, 2, "no ID needed"],
@@ -178,16 +179,51 @@ const NEIGHBORHOOD_ALIASES = [
   [/\beny\b/gi, "East New York"],
 ];
 
+// The person's own age, from "I'm 16", "im 16", "age 16", "16 yo" or
+// "16-year-old" (but not "my 16-year-old son").
+export function personAge(text) {
+  const patterns = [
+    /\b(?:i'?m|i am|im|age|aged)\s+(\d{1,2})\b(?!\s*(?:kids?|children|days?|weeks?|months?))/i,
+    /\b(\d{1,2})\s*(?:-|\s)?(?:years?|yrs?)(?:\s*|-)old\b(?!\s*(?:son|daughter|kid|child|boy|girl|baby|brother|sister|niece|nephew|grand))/i,
+    /\b(\d{1,2})\s*(?:yo|y\/o)\b/i,
+  ];
+  for (const re of patterns) {
+    const m = re.exec(text);
+    if (m && Number(m[1]) >= 5) return Number(m[1]);
+  }
+  return null;
+}
+
+// Age range a listing serves, read from the start of its eligibility text:
+// "Young people 14-24", "Single adults 18+", "Adults 17 and older",
+// "LGBTQ+ young people up to 24".
+export function ageLimits(eligibility) {
+  const first = String(eligibility || "").split(/[.;]/)[0];
+  let min = 0;
+  let max = 200;
+  let m;
+  if ((m = first.match(/(\d{1,2})\s*[-–]\s*(\d{1,2})\b/))) [min, max] = [Number(m[1]), Number(m[2])];
+  if ((m = first.match(/(\d{2})\s*(?:\+|and older|or older)/))) min = Number(m[1]);
+  if ((m = first.match(/up to (\d{2})\b/))) max = Number(m[1]);
+  if (!min && /\badults?\b/i.test(first)) min = 18;
+  return { min, max };
+}
+
 // Rules out listings the person clearly can't use, judged from the
 // eligibility text. Keyword mode only; the AI reads eligibility itself.
 function ineligible(listing, text) {
   const kids = /\b(kids?|children|child|baby|pregnant|son|daughter)\b/i.test(text);
   const woman = /\b(woman|women|female|she|her|mom|mother)\b/i.test(text);
   const man = /\b(man|men|male|he|his|dad|father)\b/i.test(text);
-  const minor = /\b(teen|teenager|minor|1[0-7][- ]?(year|yr)s?[- ]old)\b/i.test(text);
+  const age = personAge(text);
   const e = listing.eligibility;
+  if (age !== null) {
+    const { min, max } = ageLimits(e);
+    if (age < min || age > max) return true;
+  }
+  const minor = age !== null ? age < 18 : /\b(teen|teenager|minor)\b/i.test(text);
   if (minor && /18\+|single adult/i.test(e)) return true;
-  const youthCue = minor || /\b(youth|young|kid|child|student|(1[0-9]|2[0-4])[- ]?(year|yr)s?[- ]old|teens?)\b/i.test(text);
+  const youthCue = age !== null ? age <= 24 : minor || /\b(youth|young|kid|child|student|teens?)\b/i.test(text);
   if (/young people/i.test(e) && !youthCue) return true;
   if (/single adult men/i.test(e)) return kids || (woman && !man);
   if (/single adult women/i.test(e)) return kids || (man && !woman);
@@ -237,6 +273,11 @@ export function matchWithKeywords({ situation, zip, urgency }, listings, { now =
         reasons.push(`in ${l.neighborhood}`);
       }
       if (l.verified) score += 1;
+      const age = personAge(situation);
+      if (age !== null && age <= 24 && /young people|teens/i.test(l.eligibility)) {
+        score += 4;
+        reasons.push(age < 18 ? "serves people under 18" : "for young people");
+      }
       const listingText = `${l.name} ${l.offers} ${l.eligibility} ${l.what_to_bring}`;
       for (const [want, has, points, reason] of TOPICS) {
         if (want.test(situation) && has.test(listingText)) {
