@@ -1,5 +1,5 @@
 {
-  "name": "brooklyn-resource-finder",
+  "name": "nextstep",
   "version": "0.1.0",
   "private": true,
   "description": "Turn a situation described in plain words into 2-3 verified Brooklyn food and housing next steps.",

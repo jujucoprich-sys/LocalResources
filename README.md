@@ -1,4 +1,4 @@
-# NYC Resource Finder (MVP)
+# NextStep (MVP)
 
 A mobile web page with one search box for frontline workers in New York City: hospital and ER social workers, pantry and shelter staff, library and school social workers. The worker describes a situation in plain words, e.g. *"Mom with 2 kids, evicted yesterday, no food at home, near Brownsville, speaks Spanish."* The page gives back 2–3 next steps from **your phone-verified list**. Each one shows what they offer, address and transit, whether it's open now, who's eligible, what to bring, a call button, and the date it was last verified.
 

@@ -788,3 +788,7 @@ body.has-tray main { padding-bottom: 96px; }
 }
 .handout-text { display: grid; gap: 2px; overflow-wrap: anywhere; }
 .handout-item .icon-button svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* App name in the header */
+.brand-name { font-family: var(--font-display); font-weight: 800; font-size: 1.3rem; letter-spacing: -0.01em; }
+.brand-name span { opacity: 0.75; }
