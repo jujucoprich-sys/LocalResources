@@ -71,6 +71,22 @@
       </button>
     </form>
 
+    <section id="near" class="near" aria-live="polite">
+      <span class="near-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M20 10c0 5-8 12-8 12s-8-7-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span>
+      <div class="near-body">
+        <strong id="near-title">See how far each place is</strong>
+        <span id="near-sub" class="muted">Use your location or a zip code. It stays on this device.</span>
+      </div>
+      <div class="near-actions">
+        <button type="button" id="use-location" class="secondary small">Use my location</button>
+        <form id="near-zip-form" class="near-zip">
+          <input id="near-zip" inputmode="numeric" pattern="\d{5}" maxlength="5" placeholder="Zip" aria-label="Zip code for distances">
+          <button type="submit" class="secondary small">Set</button>
+        </form>
+        <button type="button" id="near-clear" class="link-button" hidden>Clear</button>
+      </div>
+    </section>
+
     <section id="search-results" class="results-block" hidden>
       <div class="section-head">
         <h2>Best matches</h2>
@@ -109,6 +125,31 @@
       <p><strong>Emergency:</strong> <a href="tel:911">911</a> · <strong>Mental health crisis:</strong> call or text <a href="tel:988">988</a> · <strong>Domestic violence:</strong> <a href="tel:18006214673">800-621-4673</a> · <strong>Anything else:</strong> <a href="tel:311">311</a></p>
     </footer>
   </main>
+
+  <dialog id="detail" class="sheet" aria-labelledby="detail-name">
+    <div id="detail-body" class="sheet-inner"></div>
+  </dialog>
+
+  <dialog id="handout" class="sheet" aria-labelledby="handout-title">
+    <div class="sheet-inner">
+      <div class="sheet-head">
+        <div>
+          <h2 id="handout-title">Handout</h2>
+          <p class="muted">Next steps to give the person. Send them by text or copy them.</p>
+        </div>
+        <button type="button" class="icon-button close-sheet" aria-label="Close handout">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <ol id="handout-list" class="handout-list"></ol>
+      <div id="handout-actions" class="actions"></div>
+    </div>
+  </dialog>
+
+  <div id="tray" class="tray" hidden>
+    <span class="tray-count"><strong id="tray-count">0</strong> in handout</span>
+    <button type="button" id="tray-open" class="primary small">View handout</button>
+  </div>
 
   <script src="/app.js" type="module"></script>
 </body>

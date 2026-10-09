@@ -78,3 +78,24 @@ test("privacy: strips phone numbers, emails, IDs, dates", () => {
   assert.doesNotMatch(text, /555|a@b|1990|AB12345C|1234567890/);
   assert.equal(redact("mom with 2 kids in 11212").changed, false);
 });
+
+test("geocode script reads NYC GeoSearch results", async () => {
+  const { geocode } = await import("../scripts/geocode.js");
+  let asked = "";
+  const fake = async (url) => {
+    asked = url;
+    return { ok: true, json: async () => ({ features: [{ geometry: { coordinates: [-73.8895, 40.8633] }, properties: { confidence: 0.9, label: "2759 Webster Ave, Bronx" } }] }) };
+  };
+  const hit = await geocode({ address: "2759 Webster Ave", borough: "Bronx", zip: "10458" }, fake);
+  assert.deepEqual(hit, { lat: "40.86330", lng: "-73.88950", label: "2759 Webster Ave, Bronx" });
+  assert.match(asked, /geosearch\.planninglabs\.nyc\/v2\/search\?text=2759\+Webster\+Ave%2C\+Bronx\+10458/);
+  const low = async () => ({ ok: true, json: async () => ({ features: [{ geometry: { coordinates: [0, 0] }, properties: { confidence: 0.2 } }] }) });
+  assert.equal(await geocode({ address: "1 Nowhere", borough: "Bronx" }, low), null);
+});
+
+test("listings: lat/lng must be inside NYC", () => {
+  const base = { _row: 2, id: "G1", name: "X", category: "food", offers: "o", phone: "p" };
+  const { listings, errors } = validateListings([{ ...base }, { ...base, _row: 3, id: "G2", lat: "40.7", lng: "-73.9" }, { ...base, _row: 4, id: "G3", lat: "34.05", lng: "-118.2" }]);
+  assert.deepEqual(listings.map((l) => l.id), ["G1", "G2"]);
+  assert.match(errors[0], /isn't in New York City/);
+});

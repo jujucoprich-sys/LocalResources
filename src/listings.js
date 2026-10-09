@@ -15,6 +15,8 @@ export const COLUMNS = [
   "neighborhood",
   "borough", // one of BOROUGHS; Citywide for phone and online help
   "zip",
+  "lat", // exact map position, filled by "npm run geocode"
+  "lng",
   "transit", // nearest subway/bus, e.g. "3 train to Saratoga Av; B47 bus"
   "hours", // machine-readable, see src/hours.js
   "hours_notes", // anything irregular: "2nd Sat only", "arrive by 10am"
@@ -58,6 +60,9 @@ export function validateListings(rows, now = new Date()) {
       rowErrors.push(`category must be one of: ${CATEGORIES.join(", ")}`);
     }
     if (r.borough && !BOROUGHS.includes(r.borough)) rowErrors.push(`borough must be one of: ${BOROUGHS.join(", ")}`);
+    if ((r.lat || r.lng) && !(Number(r.lat) > 40.4 && Number(r.lat) < 41 && Number(r.lng) > -74.3 && Number(r.lng) < -73.6)) {
+      rowErrors.push(`lat/lng ${r.lat},${r.lng} isn't in New York City`);
+    }
     if (r.zip && !/^\d{5}$/.test(r.zip)) rowErrors.push(`zip "${r.zip}" should be 5 digits`);
     if (r.last_verified) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(r.last_verified) || isNaN(new Date(r.last_verified))) {

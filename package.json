@@ -10,9 +10,14 @@
   "scripts": {
     "start": "node src/server.js",
     "test": "node --test",
-    "check-data": "node scripts/check-data.js"
+    "check-data": "node scripts/check-data.js",
+    "geocode": "node scripts/geocode.js",
+    "build-zips": "node scripts/build-zips.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.132.1"
+  },
+  "devDependencies": {
+    "zipcodes": "^8.0.0"
   }
 }

@@ -20,6 +20,10 @@ npm start                             # http://localhost:3000
 
 - **Search:** describe the situation in plain words (or tap an example) and get the 2–3 best matches.
 - **Browse by need:** nine sections, each with its own icon and color: Food, Housing & shelter, Health care, Mental health, Safety, Legal help, Jobs, Education and Community & fun (skateparks, rec centers, free dance and fitness, free afterschool and summer programs, free museum days, teen centers, homework help and volunteering). Open one to see everything in it, filter by borough (citywide services always show), and tick "Open now".
+- **Distances:** tap "Use my location" or type a zip code. Cards show "1.2 mi · 25 min walk" and browsing sorts nearest first. The location never leaves the device. Places with exact positions (from `npm run geocode`) get exact distances; the rest are estimated from their zip code and say "About".
+- **Tap a place** to open its full details: big picture, Directions (Google Maps, transit), Call, Website, Text to client (a pre-filled text message), Add to handout, and Report wrong info.
+- **Handout:** add 2–3 places and a tray appears at the bottom. Open it to text, copy or share them to the person as one list of next steps.
+- **Report wrong info** saves to `data/reports.csv` on the server (not in git): date, listing, what's wrong and a note, with phone numbers and other personal details stripped. Use it as the call list for re-verifying.
 - Each card shows whether it's open now, where it is, hours, who can go and what to bring, with buttons to call, map, open the website or copy the details into a text message.
 
 ## Your listings spreadsheet
@@ -51,6 +55,8 @@ This is the core asset. Keep it in Google Sheets or Excel, then export it as CSV
 **It's also your call sheet.** The 146 rows came from public directories and official sites in October 2026: food pantries, soup kitchens, drop-in centers, shelters, youth drop-ins, hospitals and clinics, crisis lines, Family Justice Centers, Workforce1 centers, legal and immigration help, libraries and adult classes, plus citywide phone and online services. The `to_confirm_on_call` column lists what each call needs to settle, and `sources` lists where each row came from.
 
 **Hours format:** `Mon-Fri 09:00-17:00; Sat 10:00-14:00`. Use 24-hour time. For two windows on the same days, list both: `Tue,Thu 12:00-14:00 16:00-18:00`. Overnight: `Mon-Sun 19:00-24:00 00:00-08:00`. Always open: `24/7`.
+
+**Exact map positions:** run `npm run geocode` from a computer with normal internet access. It looks up each address with NYC's free GeoSearch service and fills in the `lat` and `lng` columns, listing any address it couldn't find. Run it again after adding places (`npm run geocode -- --all` redoes everything). `npm run build-zips` rebuilds the zip code centers used for estimates.
 
 **Check the file after every edit:**
 

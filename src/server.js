@@ -35,6 +35,29 @@ const streetView = createStreetView();
 console.log(streetView.enabled ? "Street View photos on" : "Street View photos off (no GOOGLE_MAPS_API_KEY), using drawn thumbnails");
 const byId = new Map(listings.map((l) => [l.id, l]));
 
+// Workers flag wrong or outdated details from a listing. Reports go to
+// data/reports.csv (kept out of git) for whoever does the phone checks.
+const REPORT_ISSUES = ["wrong phone", "wrong address", "wrong hours", "closed for good", "eligibility changed", "other"];
+const REPORTS_PATH = path.join(ROOT, "data", "reports.csv");
+
+async function handleReport(req, res) {
+  if (rateLimited(req.socket.remoteAddress)) return sendJson(res, 429, { error: "Too many reports in a minute. Try again shortly." });
+  let body;
+  try {
+    body = JSON.parse(await readBody(req, 4000));
+  } catch {
+    return sendJson(res, 400, { error: "Couldn't read the report." });
+  }
+  const listing = byId.get(String(body.id || ""));
+  const issue = String(body.issue || "");
+  if (!listing || !REPORT_ISSUES.includes(issue)) return sendJson(res, 400, { error: "Pick what's wrong first." });
+  const note = redact(String(body.note || "").replace(/\s+/g, " ").trim().slice(0, 300)).text;
+  const q = (v) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+  if (!fs.existsSync(REPORTS_PATH)) fs.writeFileSync(REPORTS_PATH, "reported_at,id,name,issue,note\n");
+  fs.appendFileSync(REPORTS_PATH, [new Date().toISOString(), listing.id, listing.name, issue, note].map(q).join(",") + "\n");
+  sendJson(res, 200, { ok: true });
+}
+
 async function handlePhoto(req, res, id) {
   const listing = byId.get(id);
   let photo = null;
@@ -154,6 +177,7 @@ async function handleSearch(req, res) {
 const server = http.createServer(async (req, res) => {
   try {
     if (req.method === "POST" && req.url === "/api/search") return await handleSearch(req, res);
+    if (req.method === "POST" && req.url === "/api/report") return await handleReport(req, res);
     if (req.method === "GET" && req.url === "/api/info") {
       return sendJson(res, 200, { sample: IS_SAMPLE, count: listings.length, unverified: UNVERIFIED, categories: categoryCounts(listings), photos: streetView.enabled, ai: AI_ENABLED, emergency: FALLBACK });
     }

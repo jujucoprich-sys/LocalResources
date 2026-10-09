@@ -2,6 +2,16 @@
 const api = {
   info: () => fetch("/api/info").then((r) => r.json()),
   browse: (params) => fetch("/api/browse?" + new URLSearchParams(params)).then((r) => r.json()),
+  zips: () => fetch("/nyc-zips.json").then((r) => r.json()),
+  async report(body) {
+    const res = await fetch("/api/report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Couldn't send the report.");
+    return "Thanks. It's on the list to check by phone.";
+  },
   async search(body) {
     const res = await fetch("/api/search", {
       method: "POST",
@@ -37,6 +47,15 @@ const ICONS = {
   copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
   alert: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/>',
+  directions: '<path d="m3 11 19-9-9 19-2-8-8-2z"/>',
+  message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  flag: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>',
+  share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/>',
+  close: '<path d="M18 6 6 18M6 6l12 12"/>',
+  chevron: '<path d="m9 18 6-6-6-6"/>',
+  trash: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>',
 };
 
 const CATEGORY_TILES = [
@@ -145,6 +164,62 @@ function linkButton(className, href, iconName, text, external) {
   return a;
 }
 
+// ---------- Distance ----------
+// Where the person is, from the phone's location or a typed zip code. It's
+// only used here in the browser to work out distances; it's never sent to
+// the server.
+
+let ZIPS = {};
+let here = null; // { lat, lng, approx, label }
+
+function coordsOf(r) {
+  if (r.lat != null && r.lng != null) return { lat: r.lat, lng: r.lng, approx: false };
+  if (r.address && ZIPS[r.zip]) return { lat: ZIPS[r.zip][0], lng: ZIPS[r.zip][1], approx: true };
+  return null;
+}
+
+function milesBetween(a, b) {
+  const rad = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * rad;
+  const dLng = (b.lng - a.lng) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
+  return 2 * 3958.8 * Math.asin(Math.sqrt(h));
+}
+
+function distanceOf(r) {
+  const c = here && coordsOf(r);
+  return c ? { miles: milesBetween(here, c), approx: c.approx || here.approx } : null;
+}
+
+// Exact positions get exact distances. Zip-code estimates are only good to
+// about a mile, so they're rounded and say so.
+function distanceLabel(d) {
+  const m = d.miles;
+  const walk = (min) => (m <= 2.5 ? ` · ${min} min walk` : "");
+  if (!d.approx) {
+    const text = m < 0.1 ? "Under 0.1 mi" : `${m < 10 ? m.toFixed(1) : Math.round(m)} mi`;
+    return text + walk(Math.max(1, Math.round(m * 20)));
+  }
+  if (m < 1) return "Within about 1 mi";
+  const rounded = Math.round(m * 2) / 2;
+  return `About ${rounded % 1 ? rounded.toFixed(1) : rounded} mi` + walk(`~${Math.round((m * 20) / 5) * 5}`);
+}
+
+// ---------- Handout ----------
+// Places the worker collects to give the person, kept for this browser tab.
+
+let handout = [];
+try {
+  handout = JSON.parse(sessionStorage.getItem("handout") || "[]");
+} catch {
+  handout = [];
+}
+const HANDOUT_MAX = 6;
+
+function inHandout(id) {
+  return handout.some((h) => h.id === id);
+}
+
 // ---------- Thumbnails ----------
 // Every card gets a drawn scene: the borough's skyline (or a phone and
 // laptop for phone and online help), the category's icon and colors, and
@@ -235,7 +310,8 @@ function thumbnailSvg(r) {
   const inCity = Boolean(borough);
   const sunX = 30 + rand() * 260;
   const cloud = (x, y, s) => `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${s.toFixed(2)})"><ellipse cx="0" cy="0" rx="20" ry="8"/><ellipse cx="12" cy="-6" rx="12" ry="9"/></g>`;
-  const iconX = inCity ? 48 + rand() * 30 : 60;
+  // Kept away from the edges, which get cropped in the taller detail view.
+  const iconX = inCity ? 74 + rand() * 26 : 74;
   return `<svg viewBox="0 0 320 120" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
     <rect width="320" height="120" class="sky"/>
     <circle cx="${sunX.toFixed(1)}" cy="${(22 + rand() * 16).toFixed(1)}" r="${(10 + rand() * 6).toFixed(1)}" class="sun"/>
@@ -268,6 +344,38 @@ function renderThumb(r) {
   return thumb;
 }
 
+function statusPills(r) {
+  const pills = el("div", "pills");
+  pills.append(el("span", `pill ${r.open.state}`, r.open.label));
+  const d = distanceOf(r);
+  if (d) {
+    const dist = el("span", "pill distance");
+    dist.append(icon("pin", 13), el("span", null, distanceLabel(d)));
+    pills.append(dist);
+  }
+  if (!r.verified) pills.append(el("span", "pill unverified", "Not yet verified"));
+  return pills;
+}
+
+function handoutToggle(r, { large = false } = {}) {
+  const b = el("button", large ? "secondary save-toggle large" : "save-toggle");
+  b.type = "button";
+  b.dataset.id = r.id;
+  paintToggle(b);
+  b.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleHandout(r);
+  });
+  return b;
+}
+
+function paintToggle(b) {
+  const on = inHandout(b.dataset.id);
+  b.setAttribute("aria-pressed", String(on));
+  b.setAttribute("aria-label", on ? "Remove from handout" : "Add to handout");
+  b.replaceChildren(icon(on ? "check" : "plus", 16), el("span", null, on ? "In handout" : "Handout"));
+}
+
 // compact: browsing lists show the essentials and fold the rest away.
 function renderCard(r, { compact = false } = {}) {
   const card = el("article", `card cat-${r.category}`);
@@ -275,13 +383,19 @@ function renderCard(r, { compact = false } = {}) {
 
   const head = el("div", "card-head");
   const titles = el("div", "card-titles");
-  titles.append(el("h3", "name", r.name));
-  const pills = el("div", "pills");
-  pills.append(el("span", `pill ${r.open.state}`, r.open.label));
-  if (!r.verified) pills.append(el("span", "pill unverified", "Not yet verified"));
-  titles.append(pills);
-  head.append(titles);
+  const h3 = el("h3", "name");
+  const open = el("button", "card-link");
+  open.type = "button";
+  open.append(el("span", null, r.name), icon("chevron", 18));
+  open.addEventListener("click", () => openDetail(r));
+  h3.append(open);
+  titles.append(h3, statusPills(r));
+  head.append(titles, handoutToggle(r));
   card.append(head);
+  card.addEventListener("click", (e) => {
+    if (e.target.closest("a, button, summary, details, input, label, textarea")) return;
+    openDetail(r);
+  });
 
   if (!compact && r.why && r.why !== r.offers) card.append(el("p", "why", r.why));
   card.append(el("p", "offers", r.offers));
@@ -394,7 +508,9 @@ const resultsEl = $("results");
 const buttonLabel = el("span", null, "Find next steps");
 button.lastChild.replaceWith(buttonLabel);
 
+let lastSearch = null;
 function renderSearch(data) {
+  lastSearch = data;
   statusEl.replaceChildren();
   resultsEl.replaceChildren();
   if (data.redacted || data.looks_like_personal_info) {
@@ -466,6 +582,7 @@ for (const chip of document.querySelectorAll("[data-example]")) {
 
 $("clear-search").addEventListener("click", () => {
   searchBlock.hidden = true;
+  lastSearch = null;
   form.reset();
   $("situation").focus();
 });
@@ -477,7 +594,9 @@ form.addEventListener("submit", async (e) => {
   button.classList.add("busy");
   buttonLabel.textContent = "Finding…";
   try {
-    const data = await api.search({ situation: fd.get("situation"), zip: fd.get("zip"), urgency: fd.get("urgency") });
+    const zip = String(fd.get("zip") || "").trim();
+    if (!here && ZIPS[zip]) setHere({ lat: ZIPS[zip][0], lng: ZIPS[zip][1], approx: true, label: zip }, { refresh: false });
+    const data = await api.search({ situation: fd.get("situation"), zip, urgency: fd.get("urgency") });
     renderSearch(data);
     searchBlock.scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (err) {
@@ -556,8 +675,13 @@ function renderBoroughFilters() {
 async function loadBrowse() {
   const list = $("browse-list");
   const { results } = await api.browse({ category: browse.category, borough: browse.borough, open: browse.openNow ? "1" : "" });
+  if (here) {
+    // Nearest first; phone and online help (no distance) after the places.
+    const dist = (r) => distanceOf(r)?.miles ?? Infinity;
+    results.sort((a, b) => dist(a) - dist(b));
+  }
   const where = browse.borough ? ` in ${browse.borough} or citywide` : "";
-  $("browse-count").textContent = `${results.length} ${results.length === 1 ? "resource" : "resources"}${where}${browse.openNow ? ", open now" : ""}`;
+  $("browse-count").textContent = `${results.length} ${results.length === 1 ? "resource" : "resources"}${where}${browse.openNow ? ", open now" : ""}${here ? ", nearest first" : ""}`;
   list.replaceChildren();
   if (!results.length) list.append(el("p", "empty", "Nothing matches these filters. Try another borough or turn off Open now."));
   // Cascade the first few cards in; the rest arrive together.
@@ -588,9 +712,292 @@ $("browse-close").addEventListener("click", () => {
   grid.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
+// ---------- Location bar ----------
+
+function renderNear() {
+  $("near").classList.toggle("set", Boolean(here));
+  $("near-title").textContent = here ? `Distances from ${here.label}` : "See how far each place is";
+  $("near-sub").textContent = here
+    ? `${here.approx ? "Approximate, measured from the zip code's center." : "Measured from where you are."} It stays on this device.`
+    : "Use your location or a zip code. It stays on this device.";
+  $("near-clear").hidden = !here;
+}
+
+function setHere(loc, { refresh = true } = {}) {
+  here = loc;
+  renderNear();
+  if (refresh) refreshCards();
+}
+
+function refreshCards() {
+  if (lastSearch) renderSearch(lastSearch);
+  if (browse.category) loadBrowse();
+}
+
+$("use-location").addEventListener("click", () => {
+  const btn = $("use-location");
+  if (!navigator.geolocation) {
+    $("near-sub").textContent = "This browser can't share location. Type a zip code instead.";
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = "Finding you…";
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      btn.disabled = false;
+      btn.textContent = "Use my location";
+      setHere({ lat: pos.coords.latitude, lng: pos.coords.longitude, approx: false, label: "your location" });
+    },
+    () => {
+      btn.disabled = false;
+      btn.textContent = "Use my location";
+      $("near-sub").textContent = "Couldn't get your location. Type a zip code instead.";
+    },
+    { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
+  );
+});
+
+$("near-zip-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const zip = $("near-zip").value.trim();
+  if (!ZIPS[zip]) {
+    $("near-sub").textContent = "That isn't a New York City zip code. Try another.";
+    return;
+  }
+  setHere({ lat: ZIPS[zip][0], lng: ZIPS[zip][1], approx: true, label: zip });
+});
+
+$("near-clear").addEventListener("click", () => {
+  $("near-zip").value = "";
+  setHere(null);
+});
+
+// ---------- Detail sheet ----------
+
+const detail = $("detail");
+
+function directionsHref(r) {
+  return "https://www.google.com/maps/dir/?api=1&travelmode=transit&destination=" + encodeURIComponent(mapQuery(r));
+}
+
+function smsHref(text) {
+  return "sms:?&body=" + encodeURIComponent(text);
+}
+
+function openDetail(r) {
+  const body = $("detail-body");
+  body.replaceChildren();
+  detail.className = `sheet cat-${r.category}`;
+
+  const top = el("div", "sheet-photo");
+  top.append(renderThumb(r));
+  const close = el("button", "icon-button close-sheet");
+  close.type = "button";
+  close.setAttribute("aria-label", "Close");
+  close.append(icon("close", 20));
+  top.append(close);
+  body.append(top);
+
+  const title = el("h2", null, r.name);
+  title.id = "detail-name";
+  body.append(title, statusPills(r));
+  if (r.why && r.why !== r.offers) body.append(el("p", "why", r.why));
+  body.append(el("p", "offers", r.offers));
+
+  const main = el("div", "detail-main");
+  if (r.address) main.append(linkButton("primary", directionsHref(r), "directions", "Directions", true));
+  if (r.phone) main.append(linkButton(r.address ? "secondary" : "primary", telHref(r.phone), "phone", `Call ${r.phone}`));
+  if (!r.phone && r.website) main.append(linkButton(r.address ? "secondary" : "primary", webHref(r.website), "link", `Open ${r.website.split("/")[0]}`, true));
+  const more = el("div", "detail-more");
+  if (r.phone && r.website) more.append(linkButton("secondary", webHref(r.website), "link", "Website", true));
+  more.append(linkButton("secondary", smsHref(asText(r)), "message", "Text to client"));
+  more.append(handoutToggle(r, { large: true }));
+  body.append(main, more);
+
+  const where = r.address
+    ? [r.address, [r.neighborhood, r.borough].filter((v, i, a) => v && v !== "Citywide" && a.indexOf(v) === i).join(", "), r.transit]
+    : [r.website ? "Online or by phone" : "By phone", r.neighborhood === "Online" ? "" : r.neighborhood];
+  const list = el("div", "meta-list");
+  list.append(metaRow("pin", "Where", ...where));
+  list.append(metaRow("clock", "Hours", r.hours ? prettyHours(r.hours) : "Not listed, call first", r.hours_notes ? el("em", "note", r.hours_notes) : ""));
+  if (r.eligibility) list.append(metaRow("who", "Who can go", r.eligibility));
+  if (r.what_to_bring) list.append(metaRow("bring", "Bring", r.what_to_bring));
+  if (r.languages) list.append(metaRow("globe", "Languages", r.languages));
+  body.append(list);
+
+  const verified = el("p", r.verified ? "verified" : "verified pending");
+  verified.textContent = r.verified
+    ? `Last verified by phone on ${formatDate(r.last_verified)}`
+    : "Not confirmed by phone yet. Details come from public directories and may be out of date. Call before sending anyone.";
+  body.append(verified, reportForm(r));
+
+  detail.showModal();
+  close.focus();
+}
+
+function reportForm(r) {
+  const box = el("details", "report");
+  const summary = el("summary");
+  summary.append(icon("flag", 16), el("span", null, "Report wrong info"));
+  box.append(summary);
+  const form = el("form", "report-form");
+  const issues = ["wrong phone", "wrong address", "wrong hours", "closed for good", "eligibility changed", "other"];
+  const group = el("fieldset", "report-issues");
+  group.append(el("legend", null, "What's wrong?"));
+  issues.forEach((issue, i) => {
+    const id = `issue-${r.id}-${i}`;
+    const input = el("input");
+    input.type = "radio";
+    input.name = "issue";
+    input.value = issue;
+    input.id = id;
+    const label = el("label", null, issue[0].toUpperCase() + issue.slice(1));
+    label.htmlFor = id;
+    const wrap = el("span", "issue");
+    wrap.append(input, label);
+    group.append(wrap);
+  });
+  const note = el("textarea");
+  note.name = "note";
+  note.rows = 2;
+  note.maxLength = 300;
+  note.placeholder = "What did you find? (No names or personal details.)";
+  note.setAttribute("aria-label", "Details");
+  const send = el("button", "secondary", "Send report");
+  send.type = "submit";
+  const status = el("p", "report-status");
+  status.setAttribute("aria-live", "polite");
+  form.append(group, note, send, status);
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const issue = new FormData(form).get("issue");
+    if (!issue) {
+      status.textContent = "Pick what's wrong first.";
+      return;
+    }
+    send.disabled = true;
+    try {
+      status.textContent = await api.report({ id: r.id, issue, note: note.value });
+      form.reset();
+    } catch (err) {
+      status.textContent = err.message;
+    } finally {
+      send.disabled = false;
+    }
+  });
+  box.append(form);
+  return box;
+}
+
+detail.addEventListener("click", (e) => {
+  if (e.target === detail || e.target.closest(".close-sheet")) detail.close();
+});
+
+// ---------- Handout tray and sheet ----------
+
+const handoutSheet = $("handout");
+
+function saveHandout() {
+  try {
+    sessionStorage.setItem("handout", JSON.stringify(handout));
+  } catch {
+    // Private windows can refuse storage; the handout still works for this visit.
+  }
+}
+
+function toggleHandout(r) {
+  const i = handout.findIndex((h) => h.id === r.id);
+  if (i >= 0) handout.splice(i, 1);
+  else if (handout.length < HANDOUT_MAX) handout.push(r);
+  saveHandout();
+  for (const b of document.querySelectorAll(`.save-toggle[data-id="${CSS.escape(r.id)}"]`)) paintToggle(b);
+  renderTray(true);
+  if (handoutSheet.open) renderHandout();
+}
+
+function renderTray(bump = false) {
+  const tray = $("tray");
+  tray.hidden = handout.length === 0;
+  document.body.classList.toggle("has-tray", handout.length > 0);
+  $("tray-count").textContent = `${handout.length} ${handout.length === 1 ? "place" : "places"}`;
+  if (bump && !tray.hidden) {
+    tray.classList.remove("bump");
+    void tray.offsetWidth;
+    tray.classList.add("bump");
+  }
+}
+
+function handoutText() {
+  return ["Your next steps:", ...handout.map((r, i) => `\n${i + 1}. ${asText(r)}`), "\nCall 311 if anything has changed."].join("\n");
+}
+
+function renderHandout() {
+  const list = $("handout-list");
+  list.replaceChildren();
+  for (const r of handout) {
+    const li = el("li", `handout-item cat-${r.category}`);
+    const ic = el("span", "cat-icon small");
+    ic.append(icon(r.category, 18));
+    const text = el("div", "handout-text");
+    text.append(el("strong", null, r.name));
+    for (const line of [r.address, r.phone, r.hours ? prettyHours(r.hours) : r.hours_notes]) if (line) text.append(el("span", "muted", line));
+    const remove = el("button", "icon-button");
+    remove.type = "button";
+    remove.setAttribute("aria-label", `Remove ${r.name}`);
+    remove.append(icon("trash", 18));
+    remove.addEventListener("click", () => toggleHandout(r));
+    li.append(ic, text, remove);
+    list.append(li);
+  }
+  if (!handout.length) list.append(el("li", "empty", "Nothing here yet. Tap \"Handout\" on a place to add it."));
+
+  const actions = $("handout-actions");
+  actions.replaceChildren();
+  if (!handout.length) return;
+  actions.append(linkButton("primary call", smsHref(handoutText()), "message", "Text to the person"));
+  const copy = el("button", "secondary");
+  copy.type = "button";
+  const copyLabel = el("span", null, "Copy all");
+  copy.append(icon("copy", 18), copyLabel);
+  copy.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(handoutText());
+      copyLabel.textContent = "Copied";
+    } catch {
+      copyLabel.textContent = "Couldn't copy";
+    }
+    setTimeout(() => (copyLabel.textContent = "Copy all"), 2000);
+  });
+  actions.append(copy);
+  if (navigator.share) {
+    const share = el("button", "secondary");
+    share.type = "button";
+    share.append(icon("share", 18), el("span", null, "Share"));
+    share.addEventListener("click", () => navigator.share({ title: "Next steps", text: handoutText() }).catch(() => {}));
+    actions.append(share);
+  }
+  const clear = el("button", "secondary");
+  clear.type = "button";
+  clear.append(icon("trash", 18), el("span", null, "Clear"));
+  clear.addEventListener("click", () => {
+    for (const r of [...handout]) toggleHandout(r);
+  });
+  actions.append(clear);
+}
+
+$("tray-open").addEventListener("click", () => {
+  renderHandout();
+  handoutSheet.showModal();
+});
+handoutSheet.addEventListener("click", (e) => {
+  if (e.target === handoutSheet || e.target.closest(".close-sheet")) handoutSheet.close();
+});
+
 // ---------- Start ----------
 
 renderGrid();
+renderTray();
+api.zips().then((z) => (ZIPS = z)).catch(() => {});
 api.info()
   .then((info) => {
     showCounts(info.categories);
