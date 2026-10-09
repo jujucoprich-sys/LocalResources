@@ -160,3 +160,16 @@ test("keyword matcher: fun, kids' programs, study spots and volunteering", () =>
   assert.ok(ids("Want to volunteer on weekends").every((id) => id !== "K03"));
   assert.ok(!ids("Cheap gym to work out in Brooklyn").some((id) => real.find((l) => l.id === id).category === "jobs"));
 });
+
+test("keyword matcher: harm reduction, assault, trafficking, sexual health, disability jobs, narrow legal help", () => {
+  const real = loadListings("data/listings.csv", WED_230PM).listings;
+  const ids = (situation) => matchWithKeywords({ situation, zip: "", urgency: "today" }, real, { now: WED_230PM }).results.map((r) => r.id);
+  assert.ok(ids("my friend keeps overdosing on drugs").some((id) => /^MH0[34]$/.test(id)));
+  assert.ok(ids("I was sexually assaulted last night").includes("SF01"));
+  assert.equal(ids("someone is forcing me to work and took my passport")[0], "SF05");
+  assert.ok(ids("need STD testing").every((id) => id.startsWith("HC")));
+  assert.equal(ids("I have a disability and want a job")[0].slice(0, 2), "JB");
+  assert.equal(ids("I am 15 and want a summer job")[0], "JB01");
+  assert.ok(!ids("need an immigration lawyer").includes("LG04")); // eviction-only lawyers
+  assert.ok(!ids("my landlord wants to evict me, I need a lawyer").includes("O02")); // immigration-only hotline
+});

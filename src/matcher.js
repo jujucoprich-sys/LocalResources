@@ -103,12 +103,12 @@ export async function matchWithClaude(query, listings, { client, now = new Date(
 
 const NEED_WORDS = {
   food: ["wic", "food", "hungry", "hunger", "eat", "meal", "pantry", "groceries", "grocery", "snap", "ebt", "food stamps", "formula", "lunch", "dinner", "breakfast", "soup kitchen", "comida", "hambre"],
-  health: ["doctor", "clinic", "sick", "insurance", "medicaid", "medicine", "medication", "prescription", "prenatal", "dentist", "uninsured", "checkup", "health care", "healthcare", "injury", "pain"],
-  mental_health: ["depress", "anxiety", "anxious", "suicid", "kill myself", "hopeless", "therapy", "therapist", "counsel", "mental", "stress", "panic", "grief", "grieving", "self-harm", "lonely", "loneliness", "crisis", "overwhelmed", "trauma"],
+  health: ["doctor", "clinic", "sick", "insurance", "medicaid", "medicine", "medication", "prescription", "prenatal", "dentist", "std", "sti", "hiv", "prep", "birth control", "sexual health", "plan b", "uninsured", "checkup", "health care", "healthcare", "injury", "pain"],
+  mental_health: ["depress", "anxiety", "anxious", "suicid", "kill myself", "hopeless", "therapy", "therapist", "counsel", "mental", "stress", "panic", "grief", "grieving", "self-harm", "lonely", "loneliness", "crisis", "overwhelmed", "trauma", "overdos", "using drugs", "addict", "opioid", "heroin", "fentanyl", "naloxone", "narcan", "drinking problem", "sober", "recovery", "veteran"],
   education: ["school", "enroll", "ged", "hse", "high school", "english class", "learn english", "esol", "literacy", "college", "computer skills", "learn to read", "resume", "job search"],
-  jobs: ["job", "jobs", "need work", "find work", "looking for work", "out of work", "unemploy", "laid off", "fired", "lost (my|his|her|their) job", "career", "hiring", "interview"],
+  jobs: ["job", "jobs", "need work", "find work", "looking for work", "out of work", "unemploy", "laid off", "fired", "lost (my|his|her|their) job", "career", "hiring", "interview", "job training", "training program", "summer job", "work as a"],
   legal: ["lawyer", "legal", "attorney", "immigra", "green card", "citizenship", "daca", "tps", "asylum", "deport", "visa", "court date", "sued", "debt collector"],
-  safety: ["abuse", "abusive", "hits me", "hurting", "domestic violence", "unsafe at home", "partner hurt", "boyfriend hurt", "girlfriend hurt", "husband hurt", "wife hurt", "threaten", "stalk", "assault", "order of protection", "afraid of"],
+  safety: ["abuse", "abusive", "hits me", "hurting", "domestic violence", "unsafe at home", "partner hurt", "boyfriend hurt", "girlfriend hurt", "husband hurt", "wife hurt", "threaten", "stalk", "assault", "raped", "rape", "molest", "order of protection", "afraid of", "trafficked", "trafficking", "forcing me to work", "forced to work", "took my passport", "being hurt", "child abuse"],
   community: ["skate", "dance", "zumba", "fun", "hang out", "hangout", "video game", "gaming", "games", "study", "homework", "tutor", "camp", "summer program", "childcare", "babysit", "a break", "sports", "basketball", "gym", "swim", "pool", "fitness", "exercise", "work out", "workout", "museum", "zoo", "things to do", "bored", "activities", "recreation", "rec center", "volunteer", "metrocard", "fare", "id card", "idnyc", "taxes", "tax", "benefits", "older adult", "senior", "afterschool", "after school", "community", "mutual aid", "neighbors", "isolated", "city services", "311", "help line", "where to start"],
   housing: ["evict", "eviction", "evicted", "homeless", "shelter", "heat", "heating", "utility bill", "con ed", "sleep", "nowhere", "kicked out", "lost his room", "lost her room", "drop-in", "court papers", "behind on rent", "housing", "rent", "landlord", "lockout", "locked out", "sleeping", "street", "couch", "nowhere to stay", "place to stay", "housing court", "marshal", "arrears", "desalojo", "vivienda", "albergue"],
 };
@@ -129,6 +129,7 @@ const LANGUAGES = ["spanish", "chinese", "mandarin", "cantonese", "haitian creol
 // listing's own text: [situation pattern, listing pattern, score, reason].
 const LGBTQ = /\b(lgbt|gay|lesbian|bi|bisexual|trans|transgender|queer|nonbinary)\b/i;
 const NO_ID = /\bno id\b|without (an )?id|(doesn'?t|does not|don'?t) have (an )?id/i;
+const IMMIGRATION = /\b(immigra|deport|asylum|green card|visa|citizenship|daca|tps|undocumented|papers)/i;
 const TOPICS = [
   [/\b(court|lawyer|attorney|marshal|lockout|locked out|landlord|evict)/i, /lawyer|legal|eviction defense|court/i, 3, "free legal help"],
   [/\b(rent|arrears|behind)/i, /back rent|rent help|eviction prevention/i, 3, "help with back rent"],
@@ -138,6 +139,17 @@ const TOPICS = [
   [NO_ID, /no id needed|not turned away/i, 2, "no ID needed"],
   [/\b(suicid|kill (my|him|her)self|self-harm|hopeless|crisis|want to die)/i, /crisis counseling/i, 5, "24/7 crisis support"],
   [LGBTQ, /LGBTQ/i, 4, "LGBTQ support"],
+  [/\b(overdos|using drugs|addict|opioid|heroin|fentanyl|naloxone|narcan)/i, /harm reduction|overdose|substance use/i, 5, "overdose prevention and drug help"],
+  [/\b(rape|raped|sexual(ly)? assault|molest)/i, /sexual assault|sexual violence/i, 5, "support after sexual assault"],
+  [/\b(traffick|forc(ed|ing) (me )?to work|took my passport)/i, /trafficking|forced or tricked/i, 6, "help for people forced to work"],
+  [/\b(child abuse|hurting (a|my|the) (child|kid)|being hurt)/i, /child abuse|worried about a child/i, 4, "child abuse help"],
+  [/\b(disab|wheelchair|blind|deaf)/i, /disabilit/i, 6, "for people with disabilities"],
+  [/\b(training|tech|coding|computer|it job)/i, /training/i, 3, "free job training"],
+  [/\b(std|sti|hiv|prep|birth control|sexual health|plan b)\b/i, /sexual health|sti and hiv/i, 5, "sexual health care"],
+  [/\b(summer job|teen job|first job)/i, /summer jobs/i, 8, "summer jobs for young people"],
+  [/\bveteran/i, /veterans/i, 5, "for veterans"],
+  [/\b(debt|sued|collector|garnish)/i, /consumer debt|debt/i, 5, "help with debt cases"],
+  [/\b(immigra|deport|asylum|green card|visa)/i, /immigra|deportation/i, 5, "immigration legal help"],
   [/\bvolunteer/i, /volunteer(?!-run)|clean up, plant/i, 5, "volunteering"],
   [/\bskat/i, /skatepark/i, 6, "skatepark"],
   [/\b(danc|zumba)/i, /dance/i, 6, "dance classes"],
@@ -301,6 +313,11 @@ export function matchWithKeywords({ situation, zip, urgency }, listings, { now =
           reasons.push(reason);
         }
       }
+      // Narrow legal help (immigration-only, eviction-only) doesn't fit
+      // someone with a different legal problem.
+      const about = `${l.name} ${l.offers}`;
+      if (/immigra/i.test(about) && !IMMIGRATION.test(situation) && !/\b(any|all) (legal|kind)/i.test(about)) score -= 4;
+      if (/\beviction lawyer|facing eviction/i.test(about) && !/\b(evict|landlord|housing court|marshal|lockout)/i.test(situation)) score -= 4;
       if (borough && l.borough) {
         if (l.borough === borough) {
           // A neighborhood match already counted; don't double-reward it.
