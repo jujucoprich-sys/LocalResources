@@ -311,37 +311,42 @@ function safeWhy(why, listing) {
   return text;
 }
 
+// One listing as the page shows it. Every fact comes from the spreadsheet row.
+export function toCard(l, why, now = new Date()) {
+  return {
+    id: l.id,
+    name: l.name,
+    category: l.category,
+    offers: l.offers,
+    why,
+    address: l.address,
+    neighborhood: l.neighborhood,
+    borough: l.borough,
+    transit: l.transit,
+    hours: l.hours,
+    hours_notes: l.hours_notes,
+    open: !l.address && !l.hours
+      ? { state: "online", label: l.website ? "Online" : "By phone" }
+      : openStatus(l.hours, now),
+    eligibility: l.eligibility,
+    what_to_bring: l.what_to_bring,
+    phone: l.phone,
+    languages: l.languages,
+    website: l.website,
+    last_verified: l.last_verified,
+    verified: l.verified,
+  };
+}
+
 export function buildResponse(match, listings, now = new Date()) {
   const byId = new Map(listings.map((l) => [l.id, l]));
   const seen = new Set();
   const results = [];
   for (const r of Array.isArray(match.results) ? match.results : []) {
     const l = byId.get(String(r.id));
-    if (!l || seen.has(l.id)) continue; // drop anything not in the verified list
+    if (!l || seen.has(l.id)) continue; // drop anything not in the list
     seen.add(l.id);
-    results.push({
-      id: l.id,
-      name: l.name,
-      category: l.category,
-      offers: l.offers,
-      why: safeWhy(r.why, l),
-      address: l.address,
-      neighborhood: l.neighborhood,
-      borough: l.borough,
-      transit: l.transit,
-      hours: l.hours,
-      hours_notes: l.hours_notes,
-      open: !l.address && !l.hours
-        ? { state: "online", label: l.website ? "Online" : "By phone" }
-        : openStatus(l.hours, now),
-      eligibility: l.eligibility,
-      what_to_bring: l.what_to_bring,
-      phone: l.phone,
-      languages: l.languages,
-      website: l.website,
-      last_verified: l.last_verified,
-      verified: l.verified,
-    });
+    results.push(toCard(l, safeWhy(r.why, l), now));
     if (results.length >= MAX_RESULTS) break;
   }
   return {
@@ -350,4 +355,25 @@ export function buildResponse(match, listings, now = new Date()) {
     message: String(match.message || "").slice(0, 600),
     looks_like_personal_info: Boolean(match.looks_like_personal_info),
   };
+}
+
+// Everything in one category, for browsing. Open now first, then verified,
+// then by name. "Citywide" listings show under every borough filter.
+const OPEN_ORDER = { open: 0, online: 1, unknown: 2, closed: 3 };
+export function browseListings(listings, { category, borough = "", openNow = false } = {}, now = new Date()) {
+  return listings
+    .filter((l) => l.category === category)
+    .filter((l) => !borough || l.borough === borough || l.borough === "Citywide")
+    .map((l) => toCard(l, l.offers, now))
+    .filter((c) => !openNow || c.open.state === "open")
+    .sort((a, b) =>
+      OPEN_ORDER[a.open.state] - OPEN_ORDER[b.open.state] ||
+      Number(b.verified) - Number(a.verified) ||
+      a.name.localeCompare(b.name));
+}
+
+export function categoryCounts(listings) {
+  const counts = {};
+  for (const l of listings) counts[l.category] = (counts[l.category] || 0) + 1;
+  return counts;
 }

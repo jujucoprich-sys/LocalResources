@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { loadListings } from "../src/listings.js";
-import { buildResponse, detectNeeds, matchWithClaude, matchWithKeywords } from "../src/matcher.js";
+import { browseListings, buildResponse, categoryCounts, detectNeeds, matchWithClaude, matchWithKeywords } from "../src/matcher.js";
 
 const WED_230PM = new Date("2026-10-07T18:30:00Z");
 const { listings } = loadListings("data/sample-listings.csv", WED_230PM);
@@ -106,4 +106,15 @@ test("keyword matcher: citywide intake sites aren't penalized by borough", () =>
   const real = loadListings("data/listings.csv", WED_230PM).listings;
   const ids = matchWithKeywords({ situation: "Mom with 2 kids, evicted yesterday, near Brownsville", zip: "", urgency: "today" }, real, { now: WED_230PM }).results.map((r) => r.id);
   assert.ok(ids.includes("H02")); // PATH, in the Bronx, is where every family with children applies
+});
+
+test("browseListings: filters by category and borough, keeps citywide, open first", () => {
+  const real = loadListings("data/listings.csv", WED_230PM).listings;
+  const bronxFood = browseListings(real, { category: "food", borough: "Bronx" }, WED_230PM);
+  assert.ok(bronxFood.length > 3);
+  assert.ok(bronxFood.every((c) => c.category === "food" && ["Bronx", "Citywide"].includes(c.borough)));
+  const order = { open: 0, online: 1, unknown: 2, closed: 3 };
+  for (let i = 1; i < bronxFood.length; i++) assert.ok(order[bronxFood[i - 1].open.state] <= order[bronxFood[i].open.state]);
+  assert.ok(browseListings(real, { category: "food", openNow: true }, WED_230PM).every((c) => c.open.state === "open"));
+  assert.equal(Object.values(categoryCounts(real)).reduce((a, b) => a + b, 0), real.length);
 });

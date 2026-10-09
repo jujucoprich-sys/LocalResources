@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadListings } from "./listings.js";
 import { redact } from "./privacy.js";
-import { buildResponse, matchWithClaude, matchWithKeywords } from "./matcher.js";
+import { browseListings, buildResponse, categoryCounts, matchWithClaude, matchWithKeywords } from "./matcher.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PUBLIC_DIR = path.join(ROOT, "public");
@@ -133,7 +133,16 @@ const server = http.createServer(async (req, res) => {
   try {
     if (req.method === "POST" && req.url === "/api/search") return await handleSearch(req, res);
     if (req.method === "GET" && req.url === "/api/info") {
-      return sendJson(res, 200, { sample: IS_SAMPLE, count: listings.length, unverified: UNVERIFIED, ai: AI_ENABLED, emergency: FALLBACK });
+      return sendJson(res, 200, { sample: IS_SAMPLE, count: listings.length, unverified: UNVERIFIED, categories: categoryCounts(listings), ai: AI_ENABLED, emergency: FALLBACK });
+    }
+    if (req.method === "GET" && req.url.startsWith("/api/browse")) {
+      const q = new URL(req.url, "http://x").searchParams;
+      const results = browseListings(listings, {
+        category: q.get("category") || "",
+        borough: q.get("borough") || "",
+        openNow: q.get("open") === "1",
+      });
+      return sendJson(res, 200, { results });
     }
     if (req.method === "GET" || req.method === "HEAD") return serveStatic(req, res);
     res.writeHead(405, SECURITY_HEADERS);

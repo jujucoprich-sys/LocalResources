@@ -16,6 +16,12 @@ npm start                             # http://localhost:3000
 
 `data/listings.csv` holds 145 real resources that haven't been verified by phone yet. The page labels each one "Not yet verified" and shows a banner until they're confirmed. Set `ONLY_VERIFIED=1` before real use to hide unverified rows. Without `data/listings.csv`, the app falls back to made-up sample listings with a "Demo mode" banner.
 
+## Using the page
+
+- **Search:** describe the situation in plain words (or tap an example) and get the 2–3 best matches.
+- **Browse by need:** nine sections, each with its own icon and color: Food, Housing & shelter, Health care, Mental health, Safety, Legal help, Jobs, Education and Community. Open one to see everything in it, filter by borough (citywide services always show), and tick "Open now".
+- Each card shows whether it's open now, where it is, hours, who can go and what to bring, with buttons to call, map, open the website or copy the details into a text message.
+
 ## Your listings spreadsheet
 
 This is the core asset. Keep it in Google Sheets or Excel, then export it as CSV to `data/listings.csv`. Start from `data/listings-template.csv` (header row only); `data/sample-listings.csv` shows filled-in rows.

@@ -15,9 +15,12 @@
 <body>
   <header class="masthead">
     <div class="wrap">
-      <p class="eyebrow">Manhattan · Brooklyn · Queens · Bronx · Online</p>
+      <p class="brand">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 10c0 5-8 12-8 12s-8-7-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span>
+        NYC Resource Finder
+      </p>
       <h1>Find the next step.</h1>
-      <p class="lede">Describe the situation in plain words. Get two or three places, hotlines or websites that fit, with hours, what to bring, and how to reach them.</p>
+      <p class="lede">Describe the situation, or browse by need. Food, shelter, health care, legal help and more across Manhattan, Brooklyn, Queens, the Bronx and online.</p>
     </div>
   </header>
 
@@ -26,25 +29,21 @@
 
     <form id="search" class="panel" autocomplete="off">
       <label for="situation" class="label">What's going on?</label>
-      <textarea id="situation" name="situation" rows="4" maxlength="1000" required
+      <textarea id="situation" name="situation" rows="3" maxlength="1000" required
         placeholder="Mom with 2 kids, evicted yesterday, no food at home, near Brownsville, speaks Spanish."></textarea>
 
       <div class="examples" aria-label="Try an example">
         <span class="examples-label">Try:</span>
         <button type="button" class="chip" data-example="Mom with 2 kids, evicted yesterday, no food at home, near Brownsville, speaks Spanish.">Family evicted</button>
         <button type="button" class="chip" data-example="Single man, lost his room last night, nowhere to sleep, in East New York.">Nowhere to sleep</button>
-        <button type="button" class="chip" data-example="Older woman in Crown Heights, behind on rent, landlord sent court papers, no food in the fridge.">Behind on rent</button>
-        <button type="button" class="chip" data-example="Needs a hot meal today in Bed-Stuy, doesn't have ID.">Hot meal, no ID</button>
-        <button type="button" class="chip" data-example="Teen who has been feeling hopeless and stressed for weeks, doesn't want to go to a hospital.">Feeling hopeless</button>
-        <button type="button" class="chip" data-example="Uninsured, undocumented dad with diabetes, needs a doctor and medicine in East New York.">Needs a doctor</button>
-        <button type="button" class="chip" data-example="Adult in Crown Heights who wants to get a GED and take English classes.">GED &amp; English</button>
         <button type="button" class="chip" data-example="Woman in Queens says her partner hurts her and she's afraid to go home.">Unsafe at home</button>
+        <button type="button" class="chip" data-example="Teen who has been feeling hopeless and stressed for weeks, doesn't want to go to a hospital.">Feeling hopeless</button>
         <button type="button" class="chip" data-example="Just laid off from a restaurant job in the Bronx, needs work and help paying bills.">Lost a job</button>
         <button type="button" class="chip" data-example="Recently arrived immigrant family in Manhattan needs free immigration legal advice.">Immigration help</button>
       </div>
 
       <p class="privacy">
-        <svg aria-hidden="true" viewBox="0 0 20 20" width="16" height="16"><path fill="currentColor" d="M10 1.5 3 4.3v5.2c0 4.3 3 8.1 7 9 4-.9 7-4.7 7-9V4.3L10 1.5Zm0 2.1 5 2v3.9c0 3.2-2.1 6.1-5 6.9-2.9-.8-5-3.7-5-6.9V5.6l5-2Z"/></svg>
+        <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
         <span><strong>No names, birthdays, addresses or ID numbers.</strong> Nothing you type is saved.</span>
       </p>
 
@@ -62,41 +61,50 @@
         </fieldset>
       </div>
 
-      <button type="submit" id="go" class="primary">Find next steps</button>
+      <button type="submit" id="go" class="primary">
+        <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        Find next steps
+      </button>
     </form>
 
-    <section id="status" aria-live="polite"></section>
-    <section id="results" aria-live="polite"></section>
+    <section id="search-results" class="results-block" hidden>
+      <div class="section-head">
+        <h2>Best matches</h2>
+        <button type="button" id="clear-search" class="link-button">Clear</button>
+      </div>
+      <div id="status"></div>
+      <div id="results" class="card-list"></div>
+    </section>
+
+    <section class="browse" aria-labelledby="browse-title">
+      <div class="section-head">
+        <h2 id="browse-title">Browse by need</h2>
+      </div>
+      <div id="category-grid" class="category-grid"></div>
+    </section>
+
+    <section id="browse-panel" class="browse-panel" hidden aria-live="polite">
+      <div class="browse-head">
+        <span id="browse-icon" class="cat-icon" aria-hidden="true"></span>
+        <div>
+          <h2 id="browse-name"></h2>
+          <p id="browse-count" class="muted"></p>
+        </div>
+        <button type="button" id="browse-close" class="icon-button" aria-label="Close category">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="filters">
+        <div id="borough-filters" class="filter-row" role="group" aria-label="Borough"></div>
+        <label class="switch"><input type="checkbox" id="open-now"><span>Open now</span></label>
+      </div>
+      <div id="browse-list" class="card-list"></div>
+    </section>
 
     <footer class="foot">
-      <p><strong>Emergency:</strong> <a href="tel:911">911</a> · <strong>Mental health crisis:</strong> call or text <a href="tel:988">988</a> · <strong>Anything else:</strong> <a href="tel:311">311</a></p>
+      <p><strong>Emergency:</strong> <a href="tel:911">911</a> · <strong>Mental health crisis:</strong> call or text <a href="tel:988">988</a> · <strong>Domestic violence:</strong> <a href="tel:18006214673">800-621-4673</a> · <strong>Anything else:</strong> <a href="tel:311">311</a></p>
     </footer>
   </main>
-
-  <template id="card-tpl">
-    <article class="card">
-      <div class="card-top">
-        <span class="badge"></span>
-        <span class="open-pill"></span>
-      </div>
-      <h2 class="name"></h2>
-      <p class="why"></p>
-      <p class="offers"></p>
-      <dl>
-        <dt>Where</dt><dd class="where"></dd>
-        <dt>Hours</dt><dd class="hours"></dd>
-        <dt>Who can go</dt><dd class="eligibility"></dd>
-        <dt>Bring</dt><dd class="bring"></dd>
-        <dt>Languages</dt><dd class="languages"></dd>
-      </dl>
-      <div class="actions">
-        <a class="call primary"></a>
-        <a class="map secondary" target="_blank" rel="noopener">Map</a>
-        <button type="button" class="copy secondary">Copy</button>
-      </div>
-      <p class="verified"></p>
-    </article>
-  </template>
 
   <script src="/app.js" type="module"></script>
 </body>
