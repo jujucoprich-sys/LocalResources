@@ -202,10 +202,14 @@ function renderCard(r, { compact = false } = {}) {
     try {
       await navigator.clipboard.writeText(asText(r));
       copyLabel.textContent = "Copied";
+      copy.classList.add("done");
     } catch {
       copyLabel.textContent = "Couldn't copy";
     }
-    setTimeout(() => (copyLabel.textContent = "Copy"), 2000);
+    setTimeout(() => {
+      copyLabel.textContent = "Copy";
+      copy.classList.remove("done");
+    }, 2000);
   });
   actions.append(copy);
   card.append(actions);
@@ -233,6 +237,27 @@ function renderFallback(items) {
   return box;
 }
 
+function withIndex(node, i) {
+  node.style.setProperty("--i", i);
+  return node;
+}
+
+// Counts tick up from zero the first time they appear.
+function countUp(node, target) {
+  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  if (reduce || !target) {
+    node.textContent = String(target);
+    return;
+  }
+  const start = performance.now();
+  const step = (t) => {
+    const k = Math.min(1, (t - start) / 700);
+    node.textContent = String(Math.round(target * (1 - Math.pow(1 - k, 3))));
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
 function noteBox(kind, text) {
   const p = el("p", `note-box ${kind}`);
   p.append(icon(kind === "warn" ? "alert" : "info", 18), el("span", null, text));
@@ -258,7 +283,7 @@ function renderSearch(data) {
   if (data.mode === "keyword") statusEl.append(noteBox("info", "Basic keyword search (AI matching is off). Check eligibility yourself."));
   if (data.message && data.mode !== "keyword") statusEl.append(noteBox("message", data.message));
   if (data.results.length === 0) resultsEl.append(el("p", "empty", "Nothing on the list fits this situation. Try browsing by need below."));
-  for (const r of data.results) resultsEl.append(renderCard(r));
+  data.results.forEach((r, i) => resultsEl.append(withIndex(renderCard(r), i)));
   if (data.fallback?.length) resultsEl.append(renderFallback(data.fallback));
   searchBlock.hidden = false;
 }
@@ -280,6 +305,7 @@ form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const fd = new FormData(form);
   button.disabled = true;
+  button.classList.add("busy");
   buttonLabel.textContent = "Finding…";
   try {
     const data = await api.search({ situation: fd.get("situation"), zip: fd.get("zip"), urgency: fd.get("urgency") });
@@ -291,6 +317,7 @@ form.addEventListener("submit", async (e) => {
     searchBlock.hidden = false;
   } finally {
     button.disabled = false;
+    button.classList.remove("busy");
     buttonLabel.textContent = "Find next steps";
   }
 });
@@ -301,10 +328,10 @@ const browse = { category: "", borough: "", openNow: false };
 const grid = $("category-grid");
 const panel = $("browse-panel");
 
-function renderGrid(counts = {}) {
+function renderGrid() {
   grid.replaceChildren();
-  for (const c of CATEGORY_TILES) {
-    const tile = el("button", `tile cat-${c.key}`);
+  CATEGORY_TILES.forEach((c, i) => {
+    const tile = withIndex(el("button", `tile cat-${c.key}`), i);
     tile.type = "button";
     tile.dataset.category = c.key;
     tile.setAttribute("aria-pressed", String(browse.category === c.key));
@@ -313,9 +340,18 @@ function renderGrid(counts = {}) {
     const text = el("span", "tile-text");
     text.append(el("span", "tile-name", c.name), el("span", "tile-blurb", c.blurb));
     tile.append(ic, text);
-    if (counts[c.key]) tile.append(el("span", "tile-count", String(counts[c.key])));
     tile.addEventListener("click", () => openCategory(c.key));
     grid.append(tile);
+  });
+}
+
+function showCounts(counts = {}) {
+  for (const tile of grid.children) {
+    const n = counts[tile.dataset.category];
+    if (!n) continue;
+    const count = el("span", "tile-count", "0");
+    tile.append(count);
+    countUp(count, n);
   }
 }
 
@@ -342,7 +378,8 @@ async function loadBrowse() {
   $("browse-count").textContent = `${results.length} ${results.length === 1 ? "resource" : "resources"}${where}${browse.openNow ? ", open now" : ""}`;
   list.replaceChildren();
   if (!results.length) list.append(el("p", "empty", "Nothing matches these filters. Try another borough or turn off Open now."));
-  for (const r of results) list.append(renderCard(r, { compact: true }));
+  // Cascade the first few cards in; the rest arrive together.
+  results.forEach((r, i) => list.append(withIndex(renderCard(r, { compact: true }), Math.min(i, 6))));
 }
 
 async function openCategory(key) {
@@ -374,7 +411,7 @@ $("browse-close").addEventListener("click", () => {
 renderGrid();
 api.info()
   .then((info) => {
-    renderGrid(info.categories);
+    showCounts(info.categories);
     const banner = $("data-banner");
     if (info.sample) {
       banner.textContent = "Demo mode: these listings are made up. Don't refer anyone to them.";

@@ -337,9 +337,7 @@ textarea::placeholder, input::placeholder { color: var(--muted); opacity: 0.8; }
   display: grid;
   gap: 10px;
   min-width: 0;
-  animation: rise 0.3s ease both;
 }
-@keyframes rise { from { transform: translateY(6px); opacity: 0.4; } to { transform: none; opacity: 1; } }
 .card-head { display: flex; gap: 12px; align-items: flex-start; }
 .card-titles { display: grid; gap: 6px; min-width: 0; }
 .card h3 { font-size: 1.2rem; font-weight: 600; line-height: 1.2; margin: 2px 0 0; overflow-wrap: anywhere; }
@@ -384,7 +382,84 @@ textarea::placeholder, input::placeholder { color: var(--muted); opacity: 0.8; }
   .panel { padding: 24px; }
   .actions .call { flex: 2 1 0; }
 }
+
+
+/* ---------- Motion ----------
+   One load sequence (masthead, panel, tiles), then small responses to what
+   the person does: tiles lift, sections slide open, cards arrive in a short
+   cascade, open-now pills breathe. Everything starts from a visible state
+   and is switched off for reduced-motion users. */
+@keyframes rise { from { transform: translateY(10px); opacity: 0.35; } to { transform: none; opacity: 1; } }
+@keyframes pop { 0% { transform: scale(0.94); opacity: 0.4; } 60% { transform: scale(1.02); } 100% { transform: none; opacity: 1; } }
+@keyframes drift {
+  0% { background-position: 100% 0%, 0 0; }
+  100% { background-position: 70% 40%, 0 0; }
+}
+@keyframes drop { 0% { transform: translateY(-6px); } 55% { transform: translateY(2px); } 100% { transform: none; } }
+@keyframes wiggle { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-8deg); } 60% { transform: rotate(6deg); } }
+@keyframes breathe { 0% { box-shadow: 0 0 0 0 currentColor; opacity: 1; } 70% { box-shadow: 0 0 0 6px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes slide-open { from { transform: translateY(-8px); opacity: 0.3; } to { transform: none; opacity: 1; } }
+
+.masthead { background-size: 180% 180%, auto; animation: drift 14s ease-in-out infinite alternate; }
+.brand-mark { animation: drop 0.7s cubic-bezier(.3, 1.4, .5, 1) both 0.1s; }
+.masthead h1 { animation: rise 0.6s ease-out both; }
+.masthead .lede { animation: rise 0.6s ease-out both 0.08s; }
+.panel { animation: rise 0.6s ease-out both 0.15s; }
+.banner { animation: rise 0.5s ease-out both 0.1s; }
+
+.tile { animation: pop 0.45s ease-out both; animation-delay: calc(0.2s + var(--i, 0) * 45ms); }
+.tile .cat-icon { transition: transform 0.25s cubic-bezier(.3, 1.4, .5, 1), background 0.15s; }
+.tile:hover .cat-icon { transform: translateY(-2px) scale(1.06); }
+.tile:hover .cat-icon .icon { animation: wiggle 0.5s ease-in-out; }
+.tile:active { transform: scale(0.98); }
+.tile[aria-pressed="true"] .cat-icon { transform: scale(1.06); }
+
+.browse-panel:not([hidden]) .browse-head { animation: slide-open 0.35s ease-out both; }
+.browse-panel:not([hidden]) .filters { animation: slide-open 0.35s ease-out both 0.05s; }
+
+.card { animation: rise 0.4s ease-out both; animation-delay: calc(var(--i, 0) * 50ms); }
+.card .cat-icon { transition: transform 0.25s cubic-bezier(.3, 1.4, .5, 1); }
+.card:hover .cat-icon { transform: rotate(-6deg) scale(1.05); }
+.note-box, .fallback { animation: rise 0.35s ease-out both; }
+
+.pill.open::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: 1px;
+  animation: breathe 2.2s ease-out infinite;
+}
+
+.chip, .primary, .secondary, .icon-button { transition: transform 0.12s, background 0.15s, border-color 0.15s, color 0.15s, filter 0.15s; }
+.chip:hover { transform: translateY(-1px); }
+.chip:active, .secondary:active, .icon-button:active { transform: scale(0.96); }
+.primary.busy .icon { animation: spin 0.9s linear infinite; }
+.secondary.done { border-color: var(--open-ink); color: var(--open-ink); animation: pop 0.3s ease-out; }
+.icon-button:hover svg { transition: transform 0.2s; transform: rotate(90deg); }
+
+.more summary { list-style: none; display: inline-flex; align-items: center; gap: 6px; }
+.more summary::-webkit-details-marker { display: none; }
+.more summary::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.2s;
+}
+.more[open] summary::before { transform: rotate(45deg); }
+.more[open] .meta-list { animation: slide-open 0.25s ease-out both; }
+
 @media (prefers-reduced-motion: reduce) {
-  .card { animation: none; }
-  * { transition: none !important; scroll-behavior: auto !important; }
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
 }
