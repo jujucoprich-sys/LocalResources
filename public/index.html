@@ -29,8 +29,11 @@
 
     <form id="search" class="panel" autocomplete="off">
       <label for="situation" class="label">What's going on?</label>
-      <textarea id="situation" name="situation" rows="3" maxlength="1000" required
-        placeholder="Mom with 2 kids, evicted yesterday, no food at home, near Brownsville, speaks Spanish."></textarea>
+      <div class="textarea-wrap">
+        <textarea id="situation" name="situation" rows="3" maxlength="1000" required
+          placeholder="Mom with 2 kids, evicted yesterday, no food at home, near Brownsville, speaks Spanish."></textarea>
+        <span id="typing-hint" class="typing-hint" aria-hidden="true" hidden></span>
+      </div>
 
       <div class="examples" aria-label="Try an example">
         <span class="examples-label">Try:</span>

@@ -288,6 +288,53 @@ function renderSearch(data) {
   searchBlock.hidden = false;
 }
 
+// While the box is empty and not focused, example situations type themselves
+// out in it, so people see what kind of description works.
+const situation = $("situation");
+const hint = $("typing-hint");
+const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+const HINTS = [
+  "Mom with 2 kids, evicted yesterday, near Brownsville…",
+  "Single man, nowhere to sleep tonight in Harlem…",
+  "Teen feeling hopeless, doesn't want a hospital…",
+  "Laid off in the Bronx, needs work and food…",
+  "Uninsured dad in Queens needs a doctor…",
+];
+if (!reduceMotion) {
+  const placeholder = situation.placeholder;
+  let h = 0;
+  let pos = 0;
+  let deleting = false;
+  const idle = () => !situation.value && document.activeElement !== situation;
+  const tick = () => {
+    if (!idle()) {
+      hint.hidden = true;
+      situation.placeholder = placeholder;
+      setTimeout(tick, 400);
+      return;
+    }
+    situation.placeholder = "";
+    hint.hidden = false;
+    const text = HINTS[h];
+    pos += deleting ? -2 : 1;
+    hint.textContent = text.slice(0, Math.max(0, pos));
+    let wait = deleting ? 18 : 42 + Math.random() * 40;
+    if (!deleting && pos >= text.length) {
+      deleting = true;
+      wait = 1800;
+    } else if (deleting && pos <= 0) {
+      deleting = false;
+      h = (h + 1) % HINTS.length;
+      wait = 350;
+    }
+    setTimeout(tick, wait);
+  };
+  setTimeout(tick, 900);
+  situation.addEventListener("focus", () => (hint.hidden = true));
+}
+
+document.querySelectorAll(".examples .chip").forEach((chip, i) => chip.style.setProperty("--i", i));
+
 for (const chip of document.querySelectorAll("[data-example]")) {
   chip.addEventListener("click", () => {
     $("situation").value = chip.dataset.example;
@@ -340,9 +387,22 @@ function renderGrid() {
     const text = el("span", "tile-text");
     text.append(el("span", "tile-name", c.name), el("span", "tile-blurb", c.blurb));
     tile.append(ic, text);
-    tile.addEventListener("click", () => openCategory(c.key));
+    tile.addEventListener("click", (e) => {
+      if (!reduceMotion) addRipple(tile, e);
+      openCategory(c.key);
+    });
     grid.append(tile);
   });
+}
+
+// A ripple of the category color spreads from where the tile was tapped.
+function addRipple(tile, e) {
+  const box = tile.getBoundingClientRect();
+  const ripple = el("span", "ripple");
+  ripple.style.left = `${(e.clientX || box.left + box.width / 2) - box.left}px`;
+  ripple.style.top = `${(e.clientY || box.top + box.height / 2) - box.top}px`;
+  tile.append(ripple);
+  ripple.addEventListener("animationend", () => ripple.remove());
 }
 
 function showCounts(counts = {}) {

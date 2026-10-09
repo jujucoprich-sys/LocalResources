@@ -463,3 +463,122 @@ textarea::placeholder, input::placeholder { color: var(--muted); opacity: 0.8; }
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------- Search box and category motion ---------- */
+
+/* A slow ring of the category colors around the search box; brighter while typing. */
+@property --ring { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+@keyframes ring-turn { to { --ring: 360deg; } }
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 22px;
+  padding: 2.5px;
+  background: conic-gradient(from var(--ring), var(--accent), var(--food-ink), var(--housing-ink), var(--mind-ink), var(--safety-ink), var(--accent));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.35;
+  pointer-events: none;
+  animation: ring-turn 8s linear infinite;
+  transition: opacity 0.3s;
+}
+.panel:focus-within::before { opacity: 1; animation-duration: 3s; }
+.panel > * { position: relative; }
+
+/* Typed-out examples get a blinking caret. */
+@keyframes caret { 50% { border-color: transparent; } }
+.typing-hint {
+  position: absolute;
+  top: 13px;
+  left: 15px;
+  right: 15px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.typing-hint::after {
+  content: "";
+  display: inline-block;
+  height: 1.1em;
+  margin-left: 2px;
+  border-right: 2px solid var(--accent);
+  vertical-align: -0.2em;
+  animation: caret 1s step-end infinite;
+}
+.textarea-wrap { position: relative; }
+.textarea-wrap textarea { display: block; }
+
+/* A light sweep across the search button every few seconds. */
+@keyframes shine { 0%, 70% { transform: translateX(-120%) skewX(-20deg); } 100% { transform: translateX(260%) skewX(-20deg); } }
+#go { position: relative; overflow: hidden; }
+#go::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  animation: shine 4.5s ease-in-out infinite 1.5s;
+  pointer-events: none;
+}
+
+/* Example chips float in one by one. */
+.examples .chip { animation: pop 0.4s ease-out both; animation-delay: calc(0.5s + var(--i, 0) * 70ms); }
+
+/* Category tiles: icons float, hovering fills the tile with its color,
+   and each icon has its own little move. */
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes heartbeat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.22); } 30% { transform: scale(1); } 45% { transform: scale(1.15); } }
+@keyframes hop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-7px); } 70% { transform: translateY(1px); } }
+@keyframes tilt { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-12deg); } 70% { transform: rotate(12deg); } }
+@keyframes flip { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(-1); } }
+@keyframes sway { 0%, 100% { transform: translateX(0); } 30% { transform: translateX(-4px); } 70% { transform: translateX(4px); } }
+@keyframes ripple { from { transform: scale(0); opacity: 0.45; } to { transform: scale(1); opacity: 0; } }
+
+.tile { overflow: hidden; isolation: isolate; }
+.tile::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 10px;
+  left: 10px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--c-bg);
+  transform: scale(0);
+  transition: transform 0.45s cubic-bezier(.2, .8, .2, 1);
+}
+.tile:hover::before, .tile[aria-pressed="true"]::before { transform: scale(14); }
+.tile:hover .cat-icon { background: var(--surface); }
+.tile .cat-icon .icon { animation: bob 3.2s ease-in-out infinite; animation-delay: calc(var(--i, 0) * -0.35s); }
+.tile.cat-health .cat-icon .icon { animation: heartbeat 2.4s ease-in-out infinite; }
+.tile:hover .cat-icon .icon { animation: hop 0.6s ease-in-out infinite; }
+.tile.cat-food:hover .cat-icon .icon { animation: wiggle 0.6s ease-in-out infinite; }
+.tile.cat-health:hover .cat-icon .icon { animation: heartbeat 0.9s ease-in-out infinite; }
+.tile.cat-legal:hover .cat-icon .icon { animation: tilt 1s ease-in-out infinite; }
+.tile.cat-education:hover .cat-icon .icon { animation: flip 1.2s ease-in-out infinite; }
+.tile.cat-community:hover .cat-icon .icon { animation: sway 0.9s ease-in-out infinite; }
+.tile.cat-mental_health:hover .cat-icon .icon,
+.tile.cat-safety:hover .cat-icon .icon { animation: heartbeat 1.1s ease-in-out infinite; }
+.tile .ripple {
+  position: absolute;
+  z-index: -1;
+  width: 260px;
+  height: 260px;
+  margin: -130px 0 0 -130px;
+  border-radius: 50%;
+  background: var(--c-ink);
+  pointer-events: none;
+  animation: ripple 0.6s ease-out forwards;
+}
+.tile-count { transition: transform 0.2s; }
+.tile:hover .tile-count { transform: scale(1.2); }
+
+/* The open section's big icon hops once when it opens. */
+.browse-panel:not([hidden]) #browse-icon .icon { animation: hop 0.6s ease-out 0.15s 2; }
+
+@media (prefers-reduced-motion: reduce) {
+  .panel::before { opacity: 0.35; }
+  .typing-hint::after { display: none; }
+}
