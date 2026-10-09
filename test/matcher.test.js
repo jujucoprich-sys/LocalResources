@@ -173,3 +173,17 @@ test("keyword matcher: harm reduction, assault, trafficking, sexual health, disa
   assert.ok(!ids("need an immigration lawyer").includes("LG04")); // eviction-only lawyers
   assert.ok(!ids("my landlord wants to evict me, I need a lawyer").includes("O02")); // immigration-only hotline
 });
+
+test("keyword matcher: teens, elders, records, bias, dental, alcohol", () => {
+  const real = loadListings("data/listings.csv", WED_230PM).listings;
+  const ids = (situation) => matchWithKeywords({ situation, zip: "", urgency: "today" }, real, { now: WED_230PM }).results.map((r) => r.id);
+  const byId = (id) => real.find((l) => l.id === id);
+  assert.ok(ids("Teen feeling hopeless and thinking about suicide").every((id) => !/^adults?\b/i.test(byId(id).eligibility)));
+  assert.ok(ids("I am 16 and feel really depressed").every((id) => id !== "MH11")); // veterans only
+  assert.ok(ids("I am 16 and my boyfriend hits me").some((id) => /dating/i.test(byId(id).name)));
+  assert.equal(ids("my grandmother is being abused by her caretaker")[0], "SF20");
+  assert.ok(ids("I was in prison and need a job").every((id) => byId(id).category === "jobs" && /record|incarcerat|justice/i.test(byId(id).eligibility + byId(id).offers)));
+  assert.ok(ids("I want to report a hate crime").includes("SF25"));
+  assert.ok(ids("I need a free dentist").some((id) => /dent/i.test(byId(id).name + byId(id).offers)));
+  assert.equal(ids("I need AA meetings")[0], "MH26");
+});

@@ -103,12 +103,12 @@ export async function matchWithClaude(query, listings, { client, now = new Date(
 
 const NEED_WORDS = {
   food: ["wic", "food", "hungry", "hunger", "eat", "meal", "pantry", "groceries", "grocery", "snap", "ebt", "food stamps", "formula", "lunch", "dinner", "breakfast", "soup kitchen", "comida", "hambre"],
-  health: ["doctor", "clinic", "sick", "insurance", "medicaid", "medicine", "medication", "prescription", "prenatal", "dentist", "std", "sti", "hiv", "prep", "birth control", "sexual health", "plan b", "uninsured", "checkup", "health care", "healthcare", "injury", "pain"],
-  mental_health: ["depress", "anxiety", "anxious", "suicid", "kill myself", "hopeless", "therapy", "therapist", "counsel", "mental", "stress", "panic", "grief", "grieving", "self-harm", "lonely", "loneliness", "crisis", "overwhelmed", "trauma", "overdos", "using drugs", "addict", "opioid", "heroin", "fentanyl", "naloxone", "narcan", "drinking problem", "sober", "recovery", "veteran"],
+  health: ["doctor", "clinic", "sick", "insurance", "medicaid", "medicine", "medication", "prescription", "prenatal", "dentist", "dental", "tooth", "teeth", "std", "sti", "hiv", "prep", "birth control", "sexual health", "plan b", "uninsured", "checkup", "health care", "healthcare", "injury", "pain"],
+  mental_health: ["depress", "anxiety", "anxious", "suicid", "kill myself", "hopeless", "therapy", "therapist", "counsel", "mental", "stress", "panic", "grief", "grieving", "self-harm", "lonely", "loneliness", "crisis", "overwhelmed", "trauma", "overdos", "using drugs", "addict", "opioid", "heroin", "fentanyl", "naloxone", "narcan", "drinking problem", "sober", "recovery", "veteran", "alcohol", "drinking", "aa meeting", "aa meetings", "al-anon", "alateen", "narcotics anonymous", "sobriety"],
   education: ["school", "enroll", "ged", "hse", "high school", "english class", "learn english", "esol", "literacy", "college", "computer skills", "learn to read", "resume", "job search"],
-  jobs: ["job", "jobs", "need work", "find work", "looking for work", "out of work", "unemploy", "laid off", "fired", "lost (my|his|her|their) job", "career", "hiring", "interview", "job training", "training program", "summer job", "work as a"],
+  jobs: ["job", "jobs", "need work", "find work", "looking for work", "out of work", "unemploy", "laid off", "fired", "lost (my|his|her|their) job", "career", "hiring", "interview", "job training", "training program", "summer job", "work as a", "internship"],
   legal: ["lawyer", "legal", "attorney", "immigra", "green card", "citizenship", "daca", "tps", "asylum", "deport", "visa", "court date", "sued", "debt collector"],
-  safety: ["abuse", "abusive", "hits me", "hurting", "domestic violence", "unsafe at home", "partner hurt", "boyfriend hurt", "girlfriend hurt", "husband hurt", "wife hurt", "threaten", "stalk", "assault", "raped", "rape", "molest", "order of protection", "afraid of", "trafficked", "trafficking", "forcing me to work", "forced to work", "took my passport", "being hurt", "child abuse"],
+  safety: ["abuse", "abusive", "hits me", "hurting", "domestic violence", "unsafe at home", "partner hurt", "boyfriend hurt", "girlfriend hurt", "husband hurt", "wife hurt", "threaten", "stalk", "assault", "raped", "rape", "molest", "order of protection", "afraid of", "trafficked", "trafficking", "forcing me to work", "forced to work", "took my passport", "being hurt", "child abuse", "hate crime", "bias", "harass", "discriminat", "elder abuse"],
   community: ["skate", "dance", "zumba", "fun", "hang out", "hangout", "video game", "gaming", "games", "study", "homework", "tutor", "camp", "summer program", "childcare", "babysit", "a break", "sports", "basketball", "gym", "swim", "pool", "fitness", "exercise", "work out", "workout", "museum", "zoo", "things to do", "bored", "activities", "recreation", "rec center", "volunteer", "metrocard", "fare", "id card", "idnyc", "taxes", "tax", "benefits", "older adult", "senior", "afterschool", "after school", "community", "mutual aid", "neighbors", "isolated", "city services", "311", "help line", "where to start"],
   housing: ["evict", "eviction", "evicted", "homeless", "shelter", "heat", "heating", "utility bill", "con ed", "sleep", "nowhere", "kicked out", "lost his room", "lost her room", "drop-in", "court papers", "behind on rent", "housing", "rent", "landlord", "lockout", "locked out", "sleeping", "street", "couch", "nowhere to stay", "place to stay", "housing court", "marshal", "arrears", "desalojo", "vivienda", "albergue"],
 };
@@ -148,6 +148,13 @@ const TOPICS = [
   [/\b(std|sti|hiv|prep|birth control|sexual health|plan b)\b/i, /sexual health|sti and hiv/i, 5, "sexual health care"],
   [/\b(summer job|teen job|first job)/i, /summer jobs/i, 8, "summer jobs for young people"],
   [/\bveteran/i, /veterans/i, 5, "for veterans"],
+  [/\b(dentist|dental|tooth|teeth)/i, /dental|dentist/i, 6, "dental care"],
+  [/\b(alcohol|drinking|aa\b|al-anon|alateen|sobriety)/i, /alcoholics|al-anon|drinking/i, 6, "alcohol recovery support"],
+  [/\b(hate crime|bias|discriminat|harass)/i, /hate|bias|discriminat/i, 6, "bias and hate crime help"],
+  [/\b(grandm|grandf|grandpa|grandma|elder|older adult|senior|aging parent)/i, /older adult|elder|60\+/i, 8, "for older adults"],
+  [/\b(prison|jail|incarcerat|parole|probation|record|conviction|felony)/i, /incarcerat|justice involvement|record|parole/i, 6, "for people with records"],
+  [/\b(boyfriend|girlfriend|dating|bf|gf)\b/i, /dating/i, 4, "dating abuse help"],
+  [/\b(teen|teenager|1[3-9] ?(yo|years?)|i'?m 1[3-9]|i am 1[3-9])\b/i, /\bteens?\b|young people/i, 2, "for teens"],
   [/\b(debt|sued|collector|garnish)/i, /consumer debt|debt/i, 5, "help with debt cases"],
   [/\b(immigra|deport|asylum|green card|visa)/i, /immigra|deportation/i, 5, "immigration legal help"],
   [/\bvolunteer/i, /volunteer(?!-run)|clean up, plant/i, 5, "volunteering"],
@@ -177,6 +184,7 @@ const BOROUGH_WORDS = {
   Manhattan: /\b(manhattan|harlem|chelsea|midtown|washington heights|inwood|lower east side|upper west side|upper east side|uptown|downtown manhattan)\b/i,
   Bronx: /\b(bronx|fordham|hunts point|mott haven|concourse|melrose|morrisania|tremont|kingsbridge|williamsbridge|parkchester)\b/i,
   Queens: /\b(queens|jamaica|flushing|corona|elmhurst|jackson heights|astoria|far rockaway|richmond hill|forest hills|kew gardens|woodside|ridgewood)\b/i,
+  "Staten Island": /\b(staten island|st\.? george|port richmond|stapleton|tottenville|new dorp)\b/i,
   Brooklyn: /\b(brooklyn|brownsville|east new york|bedford-stuyvesant|crown heights|bushwick|flatbush|sunset park|williamsburg|canarsie|bay ridge|park slope)\b/i,
 };
 
@@ -249,7 +257,7 @@ function ineligible(listing, text) {
     if (age < min || age > max) return true;
   }
   const minor = age !== null ? age < 18 : /\b(teen|teenager|minor)\b/i.test(text);
-  if (minor && /18\+|single adult/i.test(e)) return true;
+  if (minor && (/18\+|single adult/i.test(e) || /^adults?\b(?! and| or|, (children|kids|teens))/i.test(e))) return true;
   const youthCue = age !== null ? age <= 24 : minor || /\b(youth|young|kid|child|student|teens?)\b/i.test(text);
   if (/young people/i.test(e) && !youthCue) return true;
   if (/single adult men/i.test(e)) return kids || (woman && !man);
@@ -258,6 +266,7 @@ function ineligible(listing, text) {
   if (/no children under 21/i.test(e)) return kids || /\bsingle\b/i.test(text) || (!/\b(couple|partner|wife|husband|family)\b/i.test(text));
   if (NO_ID.test(text) && /\bID required/i.test(listing.what_to_bring)) return true;
   if (/^LGBTQ/i.test(e) && !LGBTQ.test(text)) return true;
+  if (/^veterans/i.test(e) && !/\b(veteran|vet|military|served|army|navy|marine)/i.test(text)) return true;
   if (/single adults/i.test(e)) return kids;
   return false;
 }
@@ -318,6 +327,8 @@ export function matchWithKeywords({ situation, zip, urgency }, listings, { now =
       const about = `${l.name} ${l.offers}`;
       if (/immigra/i.test(about) && !IMMIGRATION.test(situation) && !/\b(any|all) (legal|kind)/i.test(about)) score -= 4;
       if (/\beviction lawyer|facing eviction/i.test(about) && !/\b(evict|landlord|housing court|marshal|lockout)/i.test(situation)) score -= 4;
+      // Someone in crisis needs a line that answers crises.
+      if (/\b(suicid|kill (my|him|her)self|want to die|self-harm|crisis)/i.test(situation) && /not a crisis line/i.test(`${l.offers} ${l.hours_notes}`)) score -= 6;
       if (borough && l.borough) {
         if (l.borough === borough) {
           // A neighborhood match already counted; don't double-reward it.
