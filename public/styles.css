@@ -799,3 +799,19 @@ body.has-tray main { padding-bottom: 96px; }
 /* App name in the header */
 .brand-name { font-family: var(--font-display); font-weight: 800; font-size: 1.3rem; letter-spacing: -0.01em; }
 .brand-name span { opacity: 0.75; }
+
+/* "Search online": unchecked results, kept visibly apart from the list. */
+.online-offer, .online-results {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.online-offer h3, .online-results h3 { margin: 0 0 6px; font-family: var(--font-display); }
+.online-offer p { margin: 0 0 12px; }
+.online-card { background: var(--surface); border-radius: 12px; padding: 14px; margin-top: 10px; border: 1px solid var(--line); }
+.online-card h4 { margin: 0 0 4px; }
+.online-card p { margin: 0 0 6px; }
+.online-card .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.online-sources { font-size: 0.88rem; color: var(--muted); overflow-wrap: anywhere; }

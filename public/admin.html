@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>NextStep review</title>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/admin.css">
+</head>
+<body class="admin">
+  <header class="masthead">
+    <div class="wrap">
+      <p class="brand"><span class="brand-name">Next<span>Step</span></span> <span class="admin-tag">Review</span></p>
+      <h1>Fill the gaps.</h1>
+      <p class="lede">What people searched for and didn't find, and resources found online waiting for your check. Nothing here reaches workers until you approve it.</p>
+    </div>
+  </header>
+
+  <main class="wrap admin-main">
+    <form id="login" class="panel admin-login">
+      <label for="token">Admin token</label>
+      <div class="admin-row">
+        <input id="token" type="password" autocomplete="current-password" required>
+        <button class="primary" type="submit">Open</button>
+      </div>
+      <p class="admin-hint">The ADMIN_TOKEN set on the server. It's kept only in this browser tab.</p>
+      <p id="login-error" class="admin-error" hidden></p>
+    </form>
+
+    <div id="admin" hidden>
+      <section class="panel">
+        <h2>Waiting for review <span id="pending-count" class="admin-count"></span></h2>
+        <p class="admin-hint">Found online by research. Check each one, ideally by phone, then approve or reject. Fix any detail before approving.</p>
+        <div id="candidates"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Gaps <span id="gap-count" class="admin-count"></span></h2>
+        <p class="admin-hint">Kinds of help searches didn't find a good fit for, most common first. Only these tags are saved, never what anyone typed.</p>
+        <p id="research-status" class="admin-status" role="status"></p>
+        <div id="gaps"></div>
+      </section>
+    </div>
+  </main>
+  <script src="/admin.js"></script>
+</body>
+</html>

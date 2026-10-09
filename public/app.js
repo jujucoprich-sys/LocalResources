@@ -22,6 +22,16 @@ const api = {
     if (!res.ok) throw new Error(data.error || "Search failed.");
     return data;
   },
+  async searchOnline(body) {
+    const res = await fetch("/api/search-online", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Online search failed.");
+    return data;
+  },
 };
 // API-END
 
@@ -546,7 +556,64 @@ function renderSearch(data) {
   if (data.results.length === 0) resultsEl.append(el("p", "empty", "Nothing on the list fits this situation. Try browsing by need below."));
   data.results.forEach((r, i) => resultsEl.append(withIndex(renderCard(r), i)));
   if (data.fallback?.length) resultsEl.append(renderFallback(data.fallback));
+  if (data.gap && liveWeb) resultsEl.append(renderOnlineOffer());
   searchBlock.hidden = false;
+}
+
+// When the list has no good fit, the worker can ask the server to look
+// online (only if LIVE_WEB_RESULTS=1). What comes back hasn't been checked
+// by anyone, so it's shown apart from the list, with a clear warning.
+let liveWeb = false;
+let lastQuery = null;
+function renderOnlineOffer() {
+  const box = el("div", "online-offer");
+  box.append(el("h3", null, "Not the right fit?"));
+  box.append(el("p", "muted", "Search the web for more options. Takes about 30 seconds. What it finds hasn't been checked by anyone yet."));
+  const btn = el("button", "secondary", "Search online");
+  btn.type = "button";
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    btn.textContent = "Searching online…";
+    try {
+      const data = await api.searchOnline(lastQuery);
+      box.replaceWith(renderOnlineResults(data));
+    } catch (err) {
+      box.querySelector("p").textContent = err.message;
+      btn.disabled = false;
+      btn.textContent = "Try again";
+    }
+  });
+  box.append(btn);
+  return box;
+}
+
+function renderOnlineResults(data) {
+  const box = el("section", "online-results");
+  box.append(el("h3", null, "Found online"));
+  box.append(noteBox("warn", "Not checked by anyone. Details can be wrong or out of date: call before sending someone. These have been sent to the team to review."));
+  if (!data.results.length) box.append(el("p", "empty", "Nothing reliable turned up online either. Try the numbers above, or call 311."));
+  for (const r of data.results) {
+    const card = el("article", "online-card");
+    card.append(el("h4", null, r.name), el("p", null, r.offers));
+    const facts = [r.address && `${r.address}${r.borough && r.borough !== "Citywide" ? `, ${r.borough}` : ""}`, r.hours || r.hours_notes, r.eligibility && `For: ${r.eligibility}`].filter(Boolean);
+    for (const f of facts) card.append(el("p", "muted", f));
+    const actions = el("div", "actions");
+    if (r.phone) actions.append(linkButton("primary call", telHref(r.phone), "phone", `Call ${r.phone}`));
+    if (r.website) actions.append(linkButton("secondary", /^https?:/.test(r.website) ? r.website : "https://" + r.website, "link", "Website", true));
+    card.append(actions);
+    const src = el("p", "online-sources");
+    src.append("Source: ");
+    r.sources.forEach((u, i) => {
+      const a = el("a", null, new URL(u).hostname.replace(/^www\./, ""));
+      a.href = u;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      src.append(i ? ", " : "", a);
+    });
+    card.append(src);
+    box.append(card);
+  }
+  return box;
 }
 
 // While the box is empty and not focused, example situations type themselves
@@ -619,6 +686,7 @@ form.addEventListener("submit", async (e) => {
   try {
     const zip = String(fd.get("zip") || "").trim();
     if (!here && ZIPS[zip]) setHere({ lat: ZIPS[zip][0], lng: ZIPS[zip][1], approx: true, label: zip }, { refresh: false });
+    lastQuery = { situation: fd.get("situation"), zip };
     const data = await api.search({ situation: fd.get("situation"), zip, urgency: fd.get("urgency") });
     renderSearch(data);
     searchBlock.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1025,6 +1093,7 @@ api.info()
   .then((info) => {
     showCounts(info.categories);
     photosEnabled = Boolean(info.photos);
+    liveWeb = Boolean(info.live_web);
     const banner = $("data-banner");
     if (info.sample) {
       banner.textContent = "Demo mode: these listings are made up. Don't refer anyone to them.";

@@ -5,7 +5,7 @@ import { nycClock, openStatus } from "./hours.js";
 export const MODEL = process.env.CLAUDE_MODEL || "claude-opus-5-5";
 const MAX_RESULTS = 3;
 
-const SYSTEM_RULES = `You help frontline workers in New York City (hospital social workers, food pantry and shelter staff, library and school social workers) find next steps for someone they're helping. The list covers Manhattan, Brooklyn, Queens and the Bronx, plus citywide phone and online services, across food, urgent housing, health care, mental health, education, jobs, legal help, safety and community help. Some listings are walk-in places; others are hotlines, text lines or websites. The worker describes the person's situation in plain words. You pick the 2-3 best options from the VERIFIED LISTINGS below.
+const SYSTEM_RULES = `You help frontline workers in New York City (hospital social workers, food pantry and shelter staff, library and school social workers) find next steps for someone they're helping. The list covers all five boroughs, plus citywide phone and online services, across food, urgent housing, health care, mental health, education, jobs, legal help, safety and community help. Some listings are walk-in places; others are hotlines, text lines or websites. The worker describes the person's situation in plain words. You pick the 2-3 best options from the VERIFIED LISTINGS below.
 
 Rules:
 - Only recommend listings from VERIFIED LISTINGS, by their exact id. Never invent or suggest any other place, program, address, phone number, or hours.
@@ -21,7 +21,7 @@ Rules:
 - If someone may be unsafe at home, include domestic violence help (NYC Hope Hotline or a Family Justice Center) and say in "message" to call 911 in immediate danger.
 - Prefer listings in or near the person's neighborhood or zip, and ones that speak the person's language when it's mentioned.
 - "why" is one short sentence, in plain words, saying why this option fits this situation. Do not state addresses, phone numbers, or hours in "why"; those are shown to the worker from the verified data.
-- If nothing in the list fits a need, set nothing_fits to true for that case and say so plainly in "message" (one or two sentences). The app will show NYC 311 and crisis hotlines. Needs outside these categories (for example jobs, immigration or debt) are not covered by this list yet.
+- If nothing in the list fits a need, set nothing_fits to true for that case and say so plainly in "message" (one or two sentences). The app will show NYC 311 and crisis hotlines, and logs the gap so the team can find more resources.
 - "message" is optional context for the worker: an important gap, an eligibility caution, or what to ask the person. Leave it empty if there's nothing useful to add.
 - Set looks_like_personal_info to true if the text seems to contain a person's name, exact street address of the person, date of birth, or ID number.
 
@@ -61,7 +61,7 @@ function buildUserMessage({ situation, zip, urgency }, listings, now) {
   const time = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
   const openIds = listings.filter((l) => openStatus(l.hours, now).state === "open").map((l) => l.id);
   return [
-    `Right now in Brooklyn: ${dayName} ${time}.`,
+    `Right now in New York City: ${dayName} ${time}.`,
     `Listings open right now: ${openIds.length ? openIds.join(", ") : "none"}.`,
     `Needs help: ${urgency === "week" ? "this week" : "today"}.`,
     zip ? `Person's zip code: ${zip}.` : null,
@@ -110,7 +110,7 @@ const NEED_WORDS = {
   legal: ["lawyer", "legal", "attorney", "immigra", "green card", "citizenship", "daca", "tps", "asylum", "deport", "visa", "court date", "sued", "debt collector"],
   safety: ["abuse", "abusive", "hits me", "hurting", "domestic violence", "unsafe at home", "partner hurt", "boyfriend hurt", "girlfriend hurt", "husband hurt", "wife hurt", "threaten", "stalk", "assault", "raped", "rape", "molest", "order of protection", "afraid of", "trafficked", "trafficking", "forcing me to work", "forced to work", "took my passport", "being hurt", "child abuse", "hate crime", "bias", "harass", "discriminat", "elder abuse"],
   community: ["skate", "dance", "zumba", "fun", "hang out", "hangout", "video game", "gaming", "games", "study", "homework", "tutor", "camp", "summer program", "childcare", "babysit", "a break", "sports", "basketball", "gym", "swim", "pool", "fitness", "exercise", "work out", "workout", "museum", "zoo", "things to do", "bored", "activities", "recreation", "rec center", "volunteer", "metrocard", "fare", "id card", "idnyc", "taxes", "tax", "benefits", "older adult", "senior", "afterschool", "after school", "community", "mutual aid", "neighbors", "isolated", "city services", "311", "help line", "where to start"],
-  housing: ["evict", "eviction", "evicted", "homeless", "shelter", "heat", "heating", "utility bill", "con ed", "sleep", "nowhere", "kicked out", "lost his room", "lost her room", "drop-in", "court papers", "behind on rent", "housing", "rent", "landlord", "lockout", "locked out", "sleeping", "street", "couch", "nowhere to stay", "place to stay", "housing court", "marshal", "arrears", "desalojo", "vivienda", "albergue"],
+  housing: ["evict", "eviction", "evicted", "homeless", "shelter", "heat", "heating", "utility bill", "con ed", "sleep", "nowhere", "kicked out", "lost his room", "lost her room", "drop-in", "court papers", "behind on rent", "housing", "rent", "landlord", "lockout", "locked out", "sleeping", "street", "couch", "nowhere to stay", "place to stay", "place to live", "somewhere to live", "need a home", "apartment", "a room", "housing program", "housing court", "marshal", "arrears", "desalojo", "vivienda", "albergue"],
 };
 export const CATEGORY_LABELS = {
   food: "Food help",

@@ -1,10 +1,15 @@
 import http from "node:http";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadListings } from "./listings.js";
 import { redact } from "./privacy.js";
 import { createPhotos } from "./photos.js";
+import { parseCsv } from "./csv.js";
+import { createGapLog, describeGap, gapKey, gapSummary } from "./gaps.js";
+import { researchGap } from "./research.js";
+import { createReviewQueue } from "./review.js";
 import { browseListings, buildResponse, categoryCounts, matchWithClaude, matchWithKeywords } from "./matcher.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -20,10 +25,17 @@ const IS_SAMPLE = path.basename(LISTINGS_PATH).startsWith("sample");
 const FALLBACK = JSON.parse(fs.readFileSync(path.join(ROOT, "data", "fallback-resources.json"), "utf8"));
 
 const ONLY_VERIFIED = process.env.ONLY_VERIFIED === "1";
-const loaded = loadListings(LISTINGS_PATH);
-const { errors, warnings } = loaded;
-const listings = ONLY_VERIFIED ? loaded.listings.filter((l) => l.verified) : loaded.listings;
-const UNVERIFIED = listings.filter((l) => !l.verified).length;
+let listings, allListings, UNVERIFIED, byId;
+// Reloaded after a reviewer approves a new resource.
+function reloadListings() {
+  const loaded = loadListings(LISTINGS_PATH);
+  allListings = loaded.listings;
+  listings = ONLY_VERIFIED ? loaded.listings.filter((l) => l.verified) : loaded.listings;
+  UNVERIFIED = listings.filter((l) => !l.verified).length;
+  byId = new Map(listings.map((l) => [l.id, l]));
+  return loaded;
+}
+const { errors, warnings } = reloadListings();
 console.log(`Loaded ${listings.length} listings (${UNVERIFIED} not yet verified) from ${path.relative(ROOT, LISTINGS_PATH)}${IS_SAMPLE ? " (SAMPLE DATA, not real places)" : ""}`);
 for (const e of errors) console.warn(`  skipped ${e}`);
 if (warnings.length) console.warn(`  ${warnings.length} warnings, run "npm run check-data" for details`);
@@ -33,7 +45,19 @@ console.log(AI_ENABLED ? "AI matching on" : "AI matching off (no ANTHROPIC_API_K
 
 const photos = createPhotos();
 console.log(`Photos: Wikimedia Commons on; Google Street View ${photos.providers.google ? "on" : "off (no GOOGLE_MAPS_API_KEY)"}; Mapillary ${photos.providers.mapillary ? "on" : "off (no MAPILLARY_TOKEN)"}`);
-const byId = new Map(listings.map((l) => [l.id, l]));
+
+// Gaps: searches that came back thin. Only tags are kept (see src/gaps.js).
+// GAP_LOG=0 turns this off.
+const GAP_LOG = process.env.GAP_LOG !== "0" && !IS_SAMPLE;
+const gapLog = createGapLog(path.join(ROOT, "data", "gaps.csv"));
+const reviewQueue = createReviewQueue(path.join(ROOT, "data", "candidates.json"));
+
+// The review page (/admin.html) needs ADMIN_TOKEN; without it, it's off.
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
+// LIVE_WEB_RESULTS=1 lets workers ask for "found online, not checked"
+// results when the list has no good fit. Off by default.
+const LIVE_WEB = process.env.LIVE_WEB_RESULTS === "1" && AI_ENABLED;
+console.log(`Gap log ${GAP_LOG ? "on" : "off"}; review page ${ADMIN_TOKEN ? "on" : "off (no ADMIN_TOKEN)"}; live web results ${LIVE_WEB ? "on" : "off"}`);
 
 // Workers flag wrong or outdated details from a listing. Reports go to
 // data/reports.csv (kept out of git) for whoever does the phone checks.
@@ -137,12 +161,16 @@ function readBody(req, limit = 10_000) {
   });
 }
 
-async function handleSearch(req, res) {
-  // Behind a hosting proxy every request comes from the proxy's address, so
-  // use the client address the proxy forwards instead.
-  const ip = process.env.TRUST_PROXY === "1"
+// Behind a hosting proxy every request comes from the proxy's address, so
+// use the client address the proxy forwards instead.
+function clientIp(req) {
+  return process.env.TRUST_PROXY === "1"
     ? String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.socket.remoteAddress
     : req.socket.remoteAddress;
+}
+
+async function handleSearch(req, res) {
+  const ip = clientIp(req);
   if (rateLimited(ip)) {
     return sendJson(res, 429, { error: "Too many searches in a minute. Wait a moment and try again." });
   }
@@ -175,20 +203,107 @@ async function handleSearch(req, res) {
   match ??= matchWithKeywords(query, listings);
 
   const out = buildResponse(match, listings);
+  const gap = describeGap(query, out);
+  if (gap && GAP_LOG) {
+    try {
+      gapLog.record(gap);
+    } catch (err) {
+      console.error(`Couldn't log gap: ${err.message}`);
+    }
+  }
   sendJson(res, 200, {
     ...out,
     mode,
     redacted,
+    gap: Boolean(gap),
     fallback: out.nothing_fits || out.results.length < 2 ? FALLBACK : [],
   });
+}
+
+// "Search online": live web research for one worker's search. Results are
+// labeled as unchecked, and also go to the review queue.
+const webHits = new Map();
+async function handleSearchOnline(req, res) {
+  if (!LIVE_WEB) return sendJson(res, 404, { error: "Online search is off." });
+  const ip = clientIp(req);
+  const now = Date.now();
+  const recent = (webHits.get(ip) || []).filter((t) => now - t < 60_000);
+  if (recent.length >= 3) return sendJson(res, 429, { error: "Online search is limited to 3 a minute. Try again shortly." });
+  webHits.set(ip, [...recent, now]);
+  let body;
+  try {
+    body = JSON.parse(await readBody(req));
+  } catch {
+    return sendJson(res, 400, { error: "Couldn't read the request." });
+  }
+  const raw = String(body.situation || "").trim().slice(0, MAX_SITUATION_CHARS);
+  if (raw.length < 5) return sendJson(res, 400, { error: "Describe the situation in a few words first." });
+  const zip = /^\d{5}$/.test(String(body.zip || "").trim()) ? String(body.zip).trim() : "";
+  // Only the gap's tags go to the web research, never the worker's words.
+  const situation = redact(raw).text;
+  const gap = describeGap({ situation, zip }, { results: [], nothing_fits: true });
+  try {
+    const found = await researchGap(gap, allListings, { maxSearches: 3 });
+    reviewQueue.add(gapKey(gap), found.accepted);
+    sendJson(res, 200, { looked_for: gapSummary(gap), results: found.accepted });
+  } catch (err) {
+    console.error(`Online search failed: ${err.name}: ${err.status ?? ""} ${String(err.message).slice(0, 200)}`);
+    sendJson(res, 502, { error: "Online search didn't work this time. Try again, or call 311." });
+  }
+}
+
+function isAdmin(req) {
+  if (!ADMIN_TOKEN) return false;
+  const given = Buffer.from(String(req.headers.authorization || "").replace(/^Bearer\s+/i, ""));
+  const want = Buffer.from(ADMIN_TOKEN);
+  return given.length === want.length && crypto.timingSafeEqual(given, want);
+}
+
+async function handleAdmin(req, res, route) {
+  if (!ADMIN_TOKEN) return sendJson(res, 404, { error: "The review page is off. Set ADMIN_TOKEN to turn it on." });
+  if (!isAdmin(req)) return sendJson(res, 401, { error: "Wrong or missing admin token." });
+  const body = req.method === "POST" ? JSON.parse((await readBody(req, 20_000)) || "{}") : {};
+  if (req.method === "GET" && route === "gaps") {
+    const researched = reviewQueue.researched();
+    return sendJson(res, 200, { gaps: gapLog.summary(parseCsv).map((g) => ({ ...g, researched: researched[g.key] || "" })), ai: AI_ENABLED });
+  }
+  if (req.method === "GET" && route === "candidates") return sendJson(res, 200, { candidates: reviewQueue.pending() });
+  if (req.method === "POST" && route === "research") {
+    if (!AI_ENABLED) return sendJson(res, 400, { error: "Research needs ANTHROPIC_API_KEY." });
+    const g = gapLog.summary(parseCsv).find((x) => x.key === body.key);
+    if (!g) return sendJson(res, 404, { error: "That gap isn't in the log." });
+    try {
+      const found = await researchGap(g.gap, allListings);
+      const added = reviewQueue.add(g.key, found.accepted);
+      return sendJson(res, 200, { added: added.length, searches: found.searches, skipped: found.rejected.map((r) => ({ name: r.listing.name, problems: r.problems })) });
+    } catch (err) {
+      console.error(`Research failed: ${err.name}: ${err.status ?? ""} ${String(err.message).slice(0, 200)}`);
+      return sendJson(res, 502, { error: "Research failed. Try again in a minute." });
+    }
+  }
+  const m = /^candidates\/([\w-]+)\/(approve|reject)$/.exec(route);
+  if (req.method === "POST" && m) {
+    if (m[2] === "reject") return sendJson(res, reviewQueue.reject(m[1], body.reason) ? 200 : 404, { ok: true });
+    const id = reviewQueue.approve(m[1], LISTINGS_PATH, {
+      edits: body.edits || {},
+      phoneChecked: Boolean(body.phone_checked),
+      reviewer: String(body.reviewer || "").slice(0, 40),
+    });
+    if (!id) return sendJson(res, 404, { error: "Already handled." });
+    reloadListings();
+    return sendJson(res, 200, { ok: true, id });
+  }
+  sendJson(res, 404, { error: "Not found." });
 }
 
 const server = http.createServer(async (req, res) => {
   try {
     if (req.method === "POST" && req.url === "/api/search") return await handleSearch(req, res);
     if (req.method === "POST" && req.url === "/api/report") return await handleReport(req, res);
+    if (req.method === "POST" && req.url === "/api/search-online") return await handleSearchOnline(req, res);
+    if (req.url.startsWith("/api/admin/")) return await handleAdmin(req, res, req.url.slice("/api/admin/".length).split("?")[0]);
     if (req.method === "GET" && req.url === "/api/info") {
-      return sendJson(res, 200, { sample: IS_SAMPLE, count: listings.length, unverified: UNVERIFIED, categories: categoryCounts(listings), photos: true, ai: AI_ENABLED, emergency: FALLBACK });
+      return sendJson(res, 200, { sample: IS_SAMPLE, count: listings.length, unverified: UNVERIFIED, categories: categoryCounts(listings), photos: true, ai: AI_ENABLED, live_web: LIVE_WEB, emergency: FALLBACK });
     }
     const photoMatch = req.method === "GET" && /^\/api\/photo\/([\w-]+)(\/info)?$/.exec(req.url);
     if (photoMatch) return await handlePhoto(req, res, photoMatch[1], Boolean(photoMatch[2]));

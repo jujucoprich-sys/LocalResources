@@ -97,6 +97,22 @@ In the hosted app, real photos fade in over the drawing when one is available, w
 
 Places none of these cover keep their drawing. The demo link can't load outside images, so it always shows drawings.
 
+## Filling gaps
+
+When a search comes back thin (nothing fits, nothing in the person's borough, nothing for under-18s, nothing in their language...), the server notes the **kind** of help that was missing in `data/gaps.csv`: categories, borough, an age group (under 18, 18-24, 62+) and a few yes/no tags (kids, pregnant, LGBTQ+, no ID, disability, immigrant, veteran, record, pet, language). It never stores what was typed, names, numbers, the exact age or the time of day, just the date.
+
+Then, on the review page:
+
+1. Set `ADMIN_TOKEN` to a long random string on the server and open `/admin.html`. Enter the token.
+2. **Gaps** lists the most common ones first. Click **Find resources**: Claude searches the web (about a minute) and suggests up to 5 places. Each suggestion must cite pages that search actually returned; anything else is dropped, along with places already on the list (same name or phone).
+3. Suggestions wait under **Waiting for review**. Check each one, ideally by phone, fix any detail, and **Approve** (tick "I phoned and confirmed" to mark it verified) or **Reject**. Approved places get a `W` id (W001, W002...) and show up in searches right away.
+
+`npm run research-gaps` does step 2 for the top 3 new gaps from the command line, so you can run it daily on a schedule and only do the reviewing by hand.
+
+**"Search online" (optional, off by default).** With `LIVE_WEB_RESULTS=1`, a worker whose search came back thin gets a **Search online** button. It looks up the same kind of help live (about 30 seconds) and shows what it finds apart from the list, under "Found online" with a "not checked by anyone, call first" warning. Only the gap's tags are sent to the web search, never the worker's words. Results also go to the review queue. Each one costs a Claude request with web searches, so it's limited to 3 a minute per worker.
+
+Approvals write to `data/listings.csv` on the server. On hosts that wipe the disk on redeploy, copy that file back into the repo (or keep `data/` on a persistent disk) so approved places aren't lost.
+
 ## Settings
 
 | Variable | Default | |
@@ -111,6 +127,9 @@ Places none of these cover keep their drawing. The demo link can't load outside 
 | `GOOGLE_MAPS_SIGNING_SECRET` | none | Signs Street View requests (recommended) |
 | `MAPILLARY_TOKEN` | none | Turns on free Mapillary street photos (places with exact coordinates) |
 | `RATE_LIMIT_PER_MIN` | `20` | Searches per minute per IP, to protect the API bill |
+| `ADMIN_TOKEN` | none | Turns on the review page (`/admin.html`) for gaps and found resources |
+| `LIVE_WEB_RESULTS` | off | `1` adds the "Search online" button for thin searches (needs `ANTHROPIC_API_KEY`) |
+| `GAP_LOG` | on | `GAP_LOG=0` stops logging gaps |
 | `TRUST_PROXY` | off | Set to `1` on hosts behind a proxy (Render, Railway, Fly.io) so the limit applies per visitor, not to everyone at once |
 
 ## Tests
@@ -125,4 +144,4 @@ Any host that runs Node works (Render, Railway, Fly.io, a small VPS). Set `ANTHR
 
 ## Deliberately left out (see the plan)
 
-SOS / case manager button, SMS, sponsor features, accounts and history, follow-up nudges, anything touching patient records, Staten Island, multiple interface languages, native apps.
+SOS / case manager button, SMS, sponsor features, accounts and history, follow-up nudges, anything touching patient records, multiple interface languages, native apps.
