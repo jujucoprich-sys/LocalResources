@@ -74,6 +74,21 @@ It lists rows with errors (no address, phone or website; unreadable hours; bad d
 
 The model is `claude-opus-5-5` at low effort (set `CLAUDE_MODEL` to change it). The listings block is prompt-cached, so repeat searches mostly pay for the short situation text. The request opts into server-side refusal fallbacks (`fallbacks: "default"`), so if the primary model declines a request, another model can answer it.
 
+## Thumbnails and Street View photos
+
+Every card has a **drawn thumbnail**: the borough's skyline (or a phone and laptop for phone and online help) in the category's colors, with small details that vary per listing. Nothing to set up, and new listings get one automatically.
+
+With a Google Maps key, walk-in places also get a **Street View photo** of the building, which fades in over the drawing. Places Google has no photo for, and phone or online services, keep the drawing.
+
+1. In [Google Cloud](https://console.cloud.google.com/), create a project, turn on billing, and enable only the **Street View Static API**.
+2. Create an API key and restrict it to that API.
+3. Optional: copy the **URL signing secret** from the Street View Static API page; signed requests can't be reused if the key leaks.
+4. Set `GOOGLE_MAPS_API_KEY` (and `GOOGLE_MAPS_SIGNING_SECRET`) on the server and restart.
+
+Cost: Google bills each photo shown (about $7 per 1,000 after the monthly free allowance). The server first asks Google whether a photo exists (free), so you never pay for blank ones, and each browser keeps a photo for a day. Google's terms don't allow storing Street View images, so the server fetches them when needed instead of saving copies. The key stays on the server; browsers only see `/api/photo/<id>`.
+
+The demo link can't show photos (previews block outside images), so it always shows the drawings.
+
 ## Settings
 
 | Variable | Default | |
@@ -84,6 +99,8 @@ The model is `claude-opus-5-5` at low effort (set `CLAUDE_MODEL` to change it). 
 | `USE_AI` | on | `USE_AI=0` forces keyword mode |
 | `PORT` | `3000` | |
 | `LISTINGS_CSV` | `data/listings.csv` | Falls back to the sample file if missing |
+| `GOOGLE_MAPS_API_KEY` | none | Turns on Street View photos for walk-in places |
+| `GOOGLE_MAPS_SIGNING_SECRET` | none | Signs Street View requests (recommended) |
 | `RATE_LIMIT_PER_MIN` | `20` | Searches per minute per IP, to protect the API bill |
 | `TRUST_PROXY` | off | Set to `1` on hosts behind a proxy (Render, Railway, Fly.io) so the limit applies per visitor, not to everyone at once |
 

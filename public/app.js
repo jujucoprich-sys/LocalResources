@@ -145,20 +145,142 @@ function linkButton(className, href, iconName, text, external) {
   return a;
 }
 
+// ---------- Thumbnails ----------
+// Every card gets a drawn scene: the borough's skyline (or a phone and
+// laptop for phone and online help), the category's icon and colors, and
+// small details seeded from the listing id so cards don't look identical.
+// When the server has a Google Maps key, a Street View photo of the
+// building fades in on top for walk-in places.
+
+let photosEnabled = false;
+
+function seededRandom(seed) {
+  let h = 2166136261;
+  for (const ch of seed) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return () => {
+    h = Math.imul(h ^ (h >>> 15), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    return ((h ^= h >>> 16) >>> 0) / 4294967296;
+  };
+}
+
+function towers(rand, { from = 0, to = 320, minH, maxH, minW = 14, maxW = 28, windows = false }) {
+  let out = "";
+  for (let x = from; x < to; ) {
+    const w = minW + rand() * (maxW - minW);
+    const h = minH + rand() * (maxH - minH);
+    out += `<rect x="${x.toFixed(1)}" y="${(120 - h).toFixed(1)}" width="${(w - 2).toFixed(1)}" height="${h.toFixed(1)}" rx="1.5"/>`;
+    if (windows && h > 40) {
+      for (let wy = 120 - h + 8; wy < 112; wy += 9) out += `<rect class="win" x="${(x + 4).toFixed(1)}" y="${wy.toFixed(1)}" width="${Math.max(3, w - 10).toFixed(1)}" height="2.2"/>`;
+    }
+    x += w;
+  }
+  return out;
+}
+
+function skyline(borough, rand) {
+  switch (borough) {
+    case "Manhattan": {
+      const spireX = 150 + rand() * 120;
+      return towers(rand, { minH: 34, maxH: 82, windows: true }) +
+        `<rect x="${spireX - 9}" y="30" width="18" height="90" rx="1.5"/><rect x="${spireX - 5}" y="18" width="10" height="14"/><rect x="${spireX - 1}" y="4" width="2" height="16"/>`;
+    }
+    case "Brooklyn": {
+      const bx = 150 + rand() * 60;
+      const tower = (x) => `<path d="M${x - 9} 120V50h18v70h-5V72a4 4 0 0 0-8 0v48Z"/>`;
+      return towers(rand, { minH: 18, maxH: 36, minW: 12, maxW: 20 }) + tower(bx) + tower(bx + 110) +
+        `<path class="cable" d="M${bx - 60} 92Q${bx + 55} 118 ${bx} 52M${bx} 52Q${bx + 55} 104 ${bx + 110} 52M${bx + 110} 52Q${bx + 165} 118 ${bx + 230} 92"/>` +
+        `<rect x="${bx - 80}" y="88" width="330" height="4"/>`;
+    }
+    case "Queens": {
+      const ux = 40 + rand() * 230;
+      return towers(rand, { minH: 16, maxH: 44, minW: 16, maxW: 30 }) +
+        `<g class="cable"><circle cx="${ux}" cy="66" r="22"/><ellipse cx="${ux}" cy="66" rx="9" ry="22"/><ellipse cx="${ux}" cy="66" rx="22" ry="8"/></g><rect x="${ux - 2}" y="88" width="4" height="32"/>`;
+    }
+    case "Bronx": {
+      let trees = "";
+      for (let i = 0; i < 5; i++) {
+        const tx = rand() * 320;
+        const r = 8 + rand() * 7;
+        trees += `<circle cx="${tx.toFixed(1)}" cy="${(112 - r).toFixed(1)}" r="${r.toFixed(1)}"/><rect x="${(tx - 1.5).toFixed(1)}" y="${(112 - r).toFixed(1)}" width="3" height="${(r + 8).toFixed(1)}"/>`;
+      }
+      return towers(rand, { minH: 22, maxH: 56, minW: 18, maxW: 34, windows: true }) + trees;
+    }
+    default:
+      return "";
+  }
+}
+
+// Phone and online help: a phone and a laptop with signal arcs.
+function devices(rand) {
+  const px = 200 + rand() * 50;
+  return `<rect x="${px}" y="36" width="34" height="64" rx="6"/><rect class="win" x="${px + 4}" y="44" width="26" height="44" rx="2"/>` +
+    `<path class="cable" d="M${px + 46} 50a18 18 0 0 1 0 24M${px + 54} 42a30 30 0 0 1 0 40"/>` +
+    `<rect x="${px - 120}" y="56" width="86" height="54" rx="5"/><rect class="win" x="${px - 114}" y="62" width="74" height="40" rx="2"/><rect x="${px - 130}" y="108" width="106" height="6" rx="3"/>`;
+}
+
+const SCENE_BOROUGHS = ["Manhattan", "Brooklyn", "Queens", "Bronx"];
+
+// Which skyline to draw. Citywide walk-in places (like PATH in the Bronx)
+// still get their own borough's scene, read from the address.
+function sceneBorough(r) {
+  if (!r.address) return "";
+  if (SCENE_BOROUGHS.includes(r.borough)) return r.borough;
+  return SCENE_BOROUGHS.find((b) => r.address.includes(b) || (r.neighborhood || "").includes(b)) || "Manhattan";
+}
+
+function thumbnailSvg(r) {
+  const rand = seededRandom(r.id);
+  const borough = sceneBorough(r);
+  const inCity = Boolean(borough);
+  const sunX = 30 + rand() * 260;
+  const cloud = (x, y, s) => `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${s.toFixed(2)})"><ellipse cx="0" cy="0" rx="20" ry="8"/><ellipse cx="12" cy="-6" rx="12" ry="9"/></g>`;
+  const iconX = inCity ? 48 + rand() * 30 : 60;
+  return `<svg viewBox="0 0 320 120" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <rect width="320" height="120" class="sky"/>
+    <circle cx="${sunX.toFixed(1)}" cy="${(22 + rand() * 16).toFixed(1)}" r="${(10 + rand() * 6).toFixed(1)}" class="sun"/>
+    <g class="clouds">${cloud(rand() * 300, 18 + rand() * 20, 0.7 + rand() * 0.5)}${cloud(rand() * 300, 30 + rand() * 18, 0.6 + rand() * 0.4)}</g>
+    <g class="skyline">${inCity ? skyline(borough, rand) : devices(rand)}</g>
+    <rect y="112" width="320" height="8" class="ground"/>
+    <g transform="translate(${iconX.toFixed(1)} 60)"><g class="thumb-icon">
+      <circle r="27" class="badge-bg"/>
+      <g transform="translate(-15 -15) scale(1.25)" class="badge-icon">${ICONS[r.category] || ""}</g>
+    </g></g>
+  </svg>`;
+}
+
+function renderThumb(r) {
+  const thumb = el("div", "thumb");
+  thumb.innerHTML = thumbnailSvg(r);
+  if (photosEnabled && r.address) {
+    const img = new Image();
+    img.alt = `Street View of ${r.address}`;
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.onload = () => {
+      img.classList.add("loaded");
+      thumb.classList.add("has-photo");
+    };
+    img.onerror = () => img.remove(); // no photo for this address: keep the drawing
+    img.src = `/api/photo/${encodeURIComponent(r.id)}`;
+    thumb.append(img, el("span", "photo-credit", "Street View"));
+  }
+  return thumb;
+}
+
 // compact: browsing lists show the essentials and fold the rest away.
 function renderCard(r, { compact = false } = {}) {
   const card = el("article", `card cat-${r.category}`);
+  card.append(renderThumb(r));
 
   const head = el("div", "card-head");
-  const catIcon = el("span", "cat-icon small");
-  catIcon.append(icon(r.category, 20));
   const titles = el("div", "card-titles");
   titles.append(el("h3", "name", r.name));
   const pills = el("div", "pills");
   pills.append(el("span", `pill ${r.open.state}`, r.open.label));
   if (!r.verified) pills.append(el("span", "pill unverified", "Not yet verified"));
   titles.append(pills);
-  head.append(catIcon, titles);
+  head.append(titles);
   card.append(head);
 
   if (!compact && r.why && r.why !== r.offers) card.append(el("p", "why", r.why));
@@ -472,6 +594,7 @@ renderGrid();
 api.info()
   .then((info) => {
     showCounts(info.categories);
+    photosEnabled = Boolean(info.photos);
     const banner = $("data-banner");
     if (info.sample) {
       banner.textContent = "Demo mode: these listings are made up. Don't refer anyone to them.";

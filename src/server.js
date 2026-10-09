@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadListings } from "./listings.js";
 import { redact } from "./privacy.js";
+import { createStreetView } from "./streetview.js";
 import { browseListings, buildResponse, categoryCounts, matchWithClaude, matchWithKeywords } from "./matcher.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -29,6 +30,27 @@ if (warnings.length) console.warn(`  ${warnings.length} warnings, run "npm run c
 
 const AI_ENABLED = process.env.USE_AI !== "0" && Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
 console.log(AI_ENABLED ? "AI matching on" : "AI matching off (no ANTHROPIC_API_KEY), using keyword matching");
+
+const streetView = createStreetView();
+console.log(streetView.enabled ? "Street View photos on" : "Street View photos off (no GOOGLE_MAPS_API_KEY), using drawn thumbnails");
+const byId = new Map(listings.map((l) => [l.id, l]));
+
+async function handlePhoto(req, res, id) {
+  const listing = byId.get(id);
+  let photo = null;
+  try {
+    photo = listing ? await streetView.photo(listing) : null;
+  } catch (err) {
+    console.error(`Street View failed for ${id}: ${err.message}`);
+  }
+  if (!photo) {
+    // The page falls back to its drawn thumbnail.
+    res.writeHead(404, { ...SECURITY_HEADERS, "Cache-Control": "public, max-age=86400" });
+    return res.end();
+  }
+  res.writeHead(200, { ...SECURITY_HEADERS, "Content-Type": photo.contentType, "Cache-Control": "public, max-age=86400" });
+  res.end(photo.body);
+}
 
 // Simple per-IP limit so a shared link can't run up the API bill.
 const RATE_LIMIT = Number(process.env.RATE_LIMIT_PER_MIN || 20);
@@ -133,8 +155,10 @@ const server = http.createServer(async (req, res) => {
   try {
     if (req.method === "POST" && req.url === "/api/search") return await handleSearch(req, res);
     if (req.method === "GET" && req.url === "/api/info") {
-      return sendJson(res, 200, { sample: IS_SAMPLE, count: listings.length, unverified: UNVERIFIED, categories: categoryCounts(listings), ai: AI_ENABLED, emergency: FALLBACK });
+      return sendJson(res, 200, { sample: IS_SAMPLE, count: listings.length, unverified: UNVERIFIED, categories: categoryCounts(listings), photos: streetView.enabled, ai: AI_ENABLED, emergency: FALLBACK });
     }
+    const photoMatch = req.method === "GET" && /^\/api\/photo\/([\w-]+)$/.exec(req.url);
+    if (photoMatch) return await handlePhoto(req, res, photoMatch[1]);
     if (req.method === "GET" && req.url.startsWith("/api/browse")) {
       const q = new URL(req.url, "http://x").searchParams;
       const results = browseListings(listings, {
