@@ -1267,7 +1267,7 @@ main, .masthead .wrap {
 
 /* Brand: the star mascot and a serif wordmark. */
 .brand { gap: 10px; }
-.brand-logo { display: inline-block; width: 46px; height: 46px; filter: drop-shadow(0 4px 14px rgba(247, 192, 70, 0.35)); }
+.brand-logo { display: inline-block; width: 46px; height: 46px; filter: drop-shadow(0 4px 14px rgba(190, 205, 255, 0.35)); }
 .brand-logo svg, .welcome-logo svg { display: block; width: 100%; height: 100%; }
 .brand-name, .wordmark { font-family: var(--font-display); font-weight: 700; font-size: 1.45rem; letter-spacing: 0.01em; color: var(--ink); }
 .brand-name span, .wordmark span { color: var(--gold); }
@@ -1386,7 +1386,7 @@ body.welcome-open > .masthead, body.welcome-open > main { visibility: hidden; }
   text-align: center;
   transform: translate3d(calc(var(--mx, 0) * 10px), calc(var(--my, 0) * 8px), 0);
 }
-.welcome-logo { width: 96px; height: 96px; filter: drop-shadow(0 8px 30px rgba(247, 192, 70, 0.45)); }
+.welcome-logo { width: 96px; height: 96px; filter: drop-shadow(0 8px 30px rgba(190, 205, 255, 0.4)); }
 .wordmark { margin: -4px 0 6px; font-size: 1.7rem; }
 .welcome-card {
   width: 100%;
