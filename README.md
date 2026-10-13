@@ -113,6 +113,17 @@ Then, on the review page:
 
 Approvals write to `data/listings.csv` on the server. On hosts that wipe the disk on redeploy, copy that file back into the repo (or keep `data/` on a persistent disk) so approved places aren't lost.
 
+## Sign in with Google
+
+The app opens on a sign-in screen. **Continue with Google** signs workers in with their Google account. The app asks Google only for name and email (`openid email profile`), never access to Gmail, and keeps nothing on the server: the session is a signed cookie that lasts 7 days. **Continue without an account** works too, unless you set `REQUIRE_LOGIN=1`. The SOS button and 988 links work on the sign-in screen either way.
+
+To turn it on:
+
+1. In [Google Cloud](https://console.cloud.google.com/) > APIs & Services > Credentials, create an **OAuth client ID** of type **Web application**.
+2. Add the authorized redirect URI `https://YOUR-DOMAIN/auth/google/callback`.
+3. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PUBLIC_URL` (e.g. `https://nextstep.example.org`) and `SESSION_SECRET` (a long random string).
+4. Optional: `ALLOWED_EMAIL_DOMAINS=hospital.org,cityagency.gov` so only work accounts can sign in, and `REQUIRE_LOGIN=1` to make sign-in required for searching.
+
 ## SOS button
 
 A red **SOS** button stays in the corner of every screen. It opens "Talk to someone now": call 988, text 988, or chat at 988lifeline.org, with 911 for immediate danger.
@@ -135,6 +146,11 @@ Below that is **"Not urgent? Get a hospital case manager" (beta)**. Until a hosp
 | `RATE_LIMIT_PER_MIN` | `20` | Searches per minute per IP, to protect the API bill |
 | `ADMIN_TOKEN` | none | Turns on the review page (`/admin.html`) for gaps and found resources |
 | `LIVE_WEB_RESULTS` | off | `1` adds the "Search online" button for thin searches (needs `ANTHROPIC_API_KEY`) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | none | Turn on "Continue with Google" (also needs `PUBLIC_URL` and `SESSION_SECRET`) |
+| `PUBLIC_URL` | none | The app's public address, for Google's redirect |
+| `SESSION_SECRET` | none | Signs the sign-in cookie |
+| `ALLOWED_EMAIL_DOMAINS` | any | Only these email domains can sign in |
+| `REQUIRE_LOGIN` | off | `1` makes sign-in required for searching (SOS still works) |
 | `CASE_MANAGER_BETA` | on | `0` hides the hospital case manager section of the SOS sheet |
 | `GAP_LOG` | on | `GAP_LOG=0` stops logging gaps |
 | `TRUST_PROXY` | off | Set to `1` on hosts behind a proxy (Render, Railway, Fly.io) so the limit applies per visitor, not to everyone at once |
@@ -151,4 +167,4 @@ Any host that runs Node works (Render, Railway, Fly.io, a small VPS). Set `ANTHR
 
 ## Deliberately left out (see the plan)
 
-SMS, sponsor features, accounts and history, follow-up nudges, anything touching patient records, multiple interface languages, native apps.
+SMS, sponsor features, saved history, follow-up nudges, anything touching patient records, multiple interface languages, native apps.

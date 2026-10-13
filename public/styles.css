@@ -1169,3 +1169,274 @@ main { padding-bottom: 110px; }
   .tile:hover, .tile:nth-child(even):hover, .card:hover { transform: none; }
 }
 body.has-tray main { padding-bottom: 180px; }
+
+/* ==========================================================================
+   Space theme: deep navy night sky, gold accents, glass panels that float.
+   The starfield is drawn by space.js; --mx / --my (-1..1) follow the
+   cursor so the nebula, the page and the cards drift and lean with it.
+   ========================================================================== */
+:root:not(#space) {
+  --bg: #030823;
+  --surface: rgba(22, 31, 82, 0.58);
+  --surface-solid: #111a48;
+  --surface-2: rgba(150, 168, 255, 0.08);
+  --ink: #eef1ff;
+  --muted: #a8b1d8;
+  --line: rgba(168, 184, 255, 0.2);
+  --accent: #f7c046;
+  --accent-ink: #1c1400;
+  --accent-soft: rgba(247, 192, 70, 0.14);
+  --accent-deep: #b07a12;
+  --mast: transparent;
+  --mast-glow: transparent;
+  --mast-ink: #eef1ff;
+  --gold: #f7c046;
+  --gold-deep: #b07a12;
+  --gold-ink: #1c1400;
+  --food-bg: rgba(255, 170, 110, 0.16); --food-ink: #ffc9a3; --housing-bg: rgba(140, 155, 255, 0.18); --housing-ink: #c9d0ff;
+  --health-bg: rgba(255, 130, 120, 0.16); --health-ink: #ffb8b0; --mind-bg: rgba(185, 150, 255, 0.18); --mind-ink: #dccbff;
+  --edu-bg: rgba(110, 200, 255, 0.16); --edu-ink: #addffa; --comm-bg: rgba(210, 225, 120, 0.15); --comm-ink: #e0e7a3;
+  --jobs-bg: rgba(120, 175, 255, 0.16); --jobs-ink: #b3d3f8; --legal-bg: rgba(230, 215, 190, 0.13); --legal-ink: #e3d9c9;
+  --safety-bg: rgba(255, 130, 190, 0.16); --safety-ink: #ffbadb;
+  --open-bg: rgba(90, 220, 150, 0.16); --open-ink: #8ee8b6; --closed-bg: rgba(255, 140, 100, 0.16); --closed-ink: #ffb898;
+  --warn-bg: rgba(247, 192, 70, 0.14); --warn-ink: #f8d98d;
+  --beta-bg: rgba(185, 150, 255, 0.18); --beta-ink: #dccbff;
+  --thumb-light: rgba(255, 244, 214, 0.32);
+  --shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
+  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  --font-display: "Lora", Georgia, "Times New Roman", serif;
+  color-scheme: dark;
+}
+
+body {
+  background:
+    radial-gradient(120% 70% at 50% -10%, #0f1a55 0%, transparent 60%),
+    linear-gradient(#030823, #050c33 70%, #08113f);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+/* Layers behind everything, each drifting a different amount. */
+.stars, .nebula, .cursor-glow { position: fixed; pointer-events: none; z-index: 0; }
+.stars { inset: 0; }
+body::before {
+  content: "";
+  position: fixed;
+  inset: -40px;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(190, 205, 255, 0.11) 1px, transparent 1.3px);
+  background-size: 34px 34px;
+  transform: translate3d(calc(var(--mx, 0) * -10px), calc(var(--my, 0) * -10px), 0);
+}
+.nebula { border-radius: 50%; filter: blur(60px); opacity: 0.55; will-change: transform; }
+.nebula.n1 {
+  width: 70vw; height: 40vh; left: -20vw; bottom: -14vh;
+  background: radial-gradient(closest-side, rgba(214, 160, 70, 0.55), rgba(120, 90, 160, 0.25) 60%, transparent);
+  transform: translate3d(calc(var(--mx, 0) * -40px), calc(var(--my, 0) * -25px), 0);
+}
+.nebula.n2 {
+  width: 60vw; height: 36vh; right: -18vw; bottom: -10vh;
+  background: radial-gradient(closest-side, rgba(226, 176, 80, 0.5), rgba(70, 90, 190, 0.25) 60%, transparent);
+  transform: translate3d(calc(var(--mx, 0) * -55px), calc(var(--my, 0) * -30px), 0);
+}
+.nebula.n3 {
+  width: 55vw; height: 45vh; left: 25vw; top: -20vh; opacity: 0.35;
+  background: radial-gradient(closest-side, rgba(90, 110, 255, 0.5), transparent);
+  transform: translate3d(calc(var(--mx, 0) * 30px), calc(var(--my, 0) * 20px), 0);
+}
+.cursor-glow {
+  left: 0; top: 0;
+  width: 420px; height: 420px;
+  margin: -210px 0 0 -210px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(247, 192, 70, 0.10), rgba(120, 140, 255, 0.06) 50%, transparent);
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+body.has-cursor .cursor-glow { opacity: 1; }
+.masthead, main, .foot { position: relative; z-index: 1; }
+/* The whole page floats a little against the sky. */
+main, .masthead .wrap {
+  transform: translate3d(calc(var(--mx, 0) * -6px), calc(var(--my, 0) * -5px), 0);
+}
+.masthead { background: none; overflow: visible; }
+.masthead::after { display: none; }
+
+@keyframes bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -6px; } }
+.float { animation: bob 5s ease-in-out infinite; }
+
+/* Brand: the star mascot and a serif wordmark. */
+.brand { gap: 10px; }
+.brand-logo { display: inline-block; width: 46px; height: 46px; filter: drop-shadow(0 4px 14px rgba(247, 192, 70, 0.35)); }
+.brand-logo svg, .welcome-logo svg { display: block; width: 100%; height: 100%; }
+.brand-name, .wordmark { font-family: var(--font-display); font-weight: 700; font-size: 1.45rem; letter-spacing: 0.01em; color: var(--ink); }
+.brand-name span, .wordmark span { color: var(--gold); }
+.account { margin-left: auto; display: inline-flex; gap: 10px; align-items: center; font-weight: 400; font-size: 0.9rem; }
+.account-name { opacity: 0.85; max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+h1 { font-family: var(--font-display); font-weight: 600; color: var(--gold); letter-spacing: -0.01em; text-shadow: 0 0 40px rgba(247, 192, 70, 0.25); }
+h2, h3, .tile-name, .sos-big strong { font-family: var(--font-display); }
+.link-gold { font: inherit; color: var(--gold); background: none; border: 0; padding: 2px 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(247, 192, 70, 0.5); }
+.link-gold:hover { text-decoration-color: var(--gold); }
+a { color: var(--gold); }
+
+/* Glass everywhere. */
+.panel, .card, .tile, .near, .browse-panel, .online-offer, .online-results, .online-card, .fallback, .glass, .cm-partner {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--glass-edge), var(--shadow);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+}
+.panel { border-radius: 24px; }
+.panel::before { opacity: 0.25; }
+.banner { background: rgba(247, 192, 70, 0.12); color: var(--warn-ink); border: 1px solid rgba(247, 192, 70, 0.3); backdrop-filter: blur(12px); }
+.note-box { background: var(--surface-2); border: 1px solid var(--line); }
+textarea, input:not([type="radio"]):not([type="checkbox"]) {
+  background: rgba(3, 8, 35, 0.45);
+  border-color: var(--line);
+  color: var(--ink);
+}
+textarea:focus, input:focus { background: rgba(3, 8, 35, 0.6); border-color: var(--gold); box-shadow: 0 0 0 3px rgba(247, 192, 70, 0.18); }
+
+/* Buttons: gold that glows instead of chunky edges. */
+.primary {
+  background: linear-gradient(180deg, #ffd673, #f2ab2c);
+  color: var(--accent-ink);
+  box-shadow: 0 0 0 1px rgba(255, 214, 115, 0.5), 0 10px 28px rgba(247, 192, 70, 0.28);
+}
+.primary:hover { transform: translateY(-1px); box-shadow: 0 0 0 1px rgba(255, 214, 115, 0.7), 0 14px 36px rgba(247, 192, 70, 0.4); filter: none; }
+.primary:active { transform: translateY(1px) scale(0.99); box-shadow: 0 0 0 1px rgba(255, 214, 115, 0.6), 0 4px 14px rgba(247, 192, 70, 0.3); }
+.secondary { background: var(--surface-2); color: var(--gold); border: 1px solid var(--line); box-shadow: var(--glass-edge); }
+.secondary:hover { background: rgba(247, 192, 70, 0.1); border-color: rgba(247, 192, 70, 0.5); box-shadow: 0 0 18px rgba(247, 192, 70, 0.18); }
+.secondary:active { transform: translateY(1px); box-shadow: none; }
+.chip { background: var(--surface-2); border: 1px solid var(--line); box-shadow: none; color: var(--ink); }
+.chip:hover { border-color: rgba(247, 192, 70, 0.6); box-shadow: 0 0 16px rgba(247, 192, 70, 0.2); }
+.chip:active { box-shadow: none; }
+.save-toggle { background: var(--surface-2); border: 1px solid var(--line); box-shadow: none; color: var(--ink); }
+.save-toggle[aria-pressed="true"] { background: var(--gold); color: var(--gold-ink); border-color: var(--gold); box-shadow: 0 0 16px rgba(247, 192, 70, 0.35); }
+.toggle label { color: var(--ink); }
+.section-head h2::before {
+  width: 16px; height: 16px; border-radius: 0; transform: none;
+  background: var(--gold);
+  box-shadow: none;
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+  filter: drop-shadow(0 0 6px rgba(247, 192, 70, 0.8));
+}
+
+/* Tiles and cards lean toward the cursor (space.js sets --rx/--ry) and
+   catch a little light where it points (--gx/--gy). */
+.tile, .card, .glass[data-tilt], .near, .online-card {
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(var(--lift, 0px));
+  transition: transform 0.25s cubic-bezier(.2, .8, .3, 1), box-shadow 0.25s, border-color 0.2s, background 0.2s;
+  background-image: radial-gradient(400px circle at var(--gx, 50%) var(--gy, 0%), rgba(255, 255, 255, 0.07), transparent 45%);
+}
+.tile:hover, .tile:nth-child(even):hover { transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-4px); border-color: color-mix(in srgb, var(--c-ink) 60%, transparent); box-shadow: var(--glass-edge), 0 0 30px color-mix(in srgb, var(--c-ink) 22%, transparent), var(--shadow); }
+.tile:active { transform: perspective(900px) translateY(1px) scale(0.98); }
+.tile[aria-pressed="true"] { background-color: var(--c-bg); border-color: var(--c-ink); box-shadow: var(--glass-edge), 0 0 30px color-mix(in srgb, var(--c-ink) 30%, transparent); }
+.tile-count { box-shadow: none; border: 1px solid color-mix(in srgb, var(--c-ink) 35%, transparent); }
+.tile .cat-icon { box-shadow: none; }
+/* Category tiles float, each on its own beat. */
+.tile { animation: pop 0.45s ease-out both, bob 6s ease-in-out infinite; animation-delay: calc(0.2s + var(--i, 0) * 45ms), calc(var(--i, 0) * -0.7s); }
+.card:hover { transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-3px); border-color: color-mix(in srgb, var(--c-ink) 55%, transparent); box-shadow: var(--glass-edge), 0 0 34px color-mix(in srgb, var(--c-ink) 18%, transparent), var(--shadow); }
+.card.top-pick, .card.top-pick:hover { border-color: rgba(247, 192, 70, 0.7); box-shadow: var(--glass-edge), 0 0 36px rgba(247, 192, 70, 0.22), var(--shadow); }
+.thumb { background: color-mix(in srgb, var(--c-bg) 100%, #0a1240); }
+.rank { background: var(--surface-solid); border-color: var(--line); box-shadow: none; }
+
+/* Progress path on the night sky. */
+.quest-node { background: rgba(255, 255, 255, 0.06); border-color: rgba(200, 210, 255, 0.3); box-shadow: none; }
+.quest-step[data-state="active"] .quest-node { background: var(--ink); color: #0b1440; border-color: var(--ink); box-shadow: 0 0 20px rgba(220, 228, 255, 0.5); }
+.quest-step[data-state="done"] .quest-node { box-shadow: 0 0 18px rgba(247, 192, 70, 0.6); }
+.quest-step + .quest-step::before { background: rgba(200, 210, 255, 0.18); }
+
+/* Sheets and the handout tray. */
+dialog.sheet { background: rgba(10, 16, 50, 0.92); color: var(--ink); border: 1px solid var(--line); backdrop-filter: blur(20px); box-shadow: 0 -10px 60px rgba(0, 0, 0, 0.5); }
+dialog.sheet::backdrop { background: rgba(2, 5, 22, 0.55); backdrop-filter: blur(4px); }
+.icon-button { background: var(--surface-2); color: var(--ink); border-color: var(--line); }
+.tray { background: rgba(12, 18, 56, 0.85); color: var(--ink); border: 1px solid var(--line); backdrop-filter: blur(16px); box-shadow: var(--glass-edge), var(--shadow); }
+.sos-big { background: var(--surface-2); border: 1px solid var(--line); box-shadow: var(--glass-edge); color: var(--ink); }
+.sos-big:active { box-shadow: none; }
+.sos-big.call { background: linear-gradient(180deg, #f2615a, #d63a34); border-color: transparent; box-shadow: 0 10px 30px rgba(224, 69, 63, 0.35); }
+.sos-big-icon { background: rgba(247, 192, 70, 0.14); color: var(--gold); }
+.sos-fab { border-color: rgba(255, 255, 255, 0.85); box-shadow: 0 0 0 6px rgba(224, 69, 63, 0.18), 0 10px 30px rgba(224, 69, 63, 0.5); z-index: 60; }
+.sos-fab:active { box-shadow: 0 0 0 4px rgba(224, 69, 63, 0.25), 0 4px 14px rgba(224, 69, 63, 0.4); }
+.sos-danger { background: rgba(255, 110, 90, 0.12); color: #ffc2b4; border-color: rgba(255, 110, 90, 0.4); }
+.cm-empty { background: var(--surface-2); border: 1px solid var(--line); }
+.foot { color: var(--muted); }
+
+/* ---------- Sign-in screen ---------- */
+.welcome {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px calc(110px + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  background: radial-gradient(90% 60% at 50% 30%, rgba(20, 30, 90, 0.35), transparent 70%);
+  animation: fade-in 0.5s ease-out both;
+}
+.welcome.leaving { animation: warp-out 0.55s cubic-bezier(.6, 0, .4, 1) forwards; }
+body.welcome-open { overflow: hidden; }
+body.welcome-open > .masthead, body.welcome-open > main { visibility: hidden; }
+.welcome-inner {
+  width: min(440px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  text-align: center;
+  transform: translate3d(calc(var(--mx, 0) * 10px), calc(var(--my, 0) * 8px), 0);
+}
+.welcome-logo { width: 96px; height: 96px; filter: drop-shadow(0 8px 30px rgba(247, 192, 70, 0.45)); }
+.wordmark { margin: -4px 0 6px; font-size: 1.7rem; }
+.welcome-card {
+  width: 100%;
+  padding: 30px 28px 24px;
+  border-radius: 24px;
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  background-color: rgba(26, 36, 92, 0.55);
+  border-color: rgba(190, 200, 255, 0.28);
+}
+.welcome-card h1 { font-size: clamp(1.8rem, 6vw, 2.2rem); margin: 0; line-height: 1.1; }
+.welcome-lede { margin: 0; color: var(--ink); opacity: 0.88; }
+.google-btn {
+  margin-top: 6px;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 13px 18px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #1f1f1f;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid #dadce0;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3), 0 10px 30px rgba(120, 150, 255, 0.25);
+  transition: transform 0.15s, box-shadow 0.2s;
+}
+.google-btn:hover { transform: translateY(-1px); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5), 0 14px 40px rgba(247, 192, 70, 0.3); }
+.google-btn:active { transform: translateY(1px); }
+.google-btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.welcome-note { margin: 0; font-size: 0.9rem; color: var(--warn-ink); background: var(--warn-bg); padding: 8px 12px; border-radius: 12px; }
+.welcome-fine { margin: 4px 0 0; font-size: 0.82rem; color: var(--muted); line-height: 1.45; }
+.welcome-sos { margin: 6px 0 0; color: var(--muted); font-size: 0.92rem; }
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes warp-out {
+  to { opacity: 0; transform: scale(1.12); filter: blur(6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nebula, body::before, main, .masthead .wrap, .welcome-inner { transform: none !important; }
+  .cursor-glow { display: none; }
+}
+/* Entrance animations must not hold a transform afterwards, or the tilt can't apply. */
+.tile { animation: pop 0.45s ease-out backwards, bob 6s ease-in-out infinite; animation-delay: calc(0.2s + var(--i, 0) * 45ms), calc(var(--i, 0) * -0.7s); }
+.card { animation: rise 0.4s ease-out backwards; animation-delay: calc(var(--i, 0) * 50ms); }
+/* No colored masthead to tuck under any more. */
+.masthead { padding-block: 22px 26px; }
+.banner { margin: 0; }
+.panel, .banner:not([hidden]) + .panel { margin-top: 0; }
+html, body { overflow-x: clip; }

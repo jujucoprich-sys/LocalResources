@@ -1,6 +1,8 @@
 // API-START
 const api = {
   info: () => fetch("/api/info").then((r) => r.json()),
+  me: () => fetch("/api/me").then((r) => r.json()),
+  signOut: () => fetch("/auth/logout", { method: "POST" }),
   browse: (params) => fetch("/api/browse?" + new URLSearchParams(params)).then((r) => r.json()),
   zips: () => fetch("/nyc-zips.json").then((r) => r.json()),
   async report(body) {
@@ -19,6 +21,7 @@ const api = {
       body: JSON.stringify(body),
     });
     const data = await res.json();
+    if (res.status === 401 && data.sign_in) showWelcome();
     if (!res.ok) throw new Error(data.error || "Search failed.");
     return data;
   },
@@ -1182,6 +1185,85 @@ $("sos-open").addEventListener("click", () => {
 sosSheet.addEventListener("click", (e) => {
   if (e.target === sosSheet || e.target.closest(".close-sheet")) sosSheet.close();
 });
+
+// ---------- Sign-in screen ----------
+// Shown first. "Continue with Google" signs workers in (name and email only);
+// "continue without an account" works unless the server requires sign-in.
+// The SOS button stays on top the whole time.
+
+const welcome = $("welcome");
+let me = { google: false, require_login: false, user: null };
+
+function guestChosen() {
+  try {
+    return sessionStorage.getItem("guest") === "1";
+  } catch {
+    return false;
+  }
+}
+
+function showWelcome() {
+  welcome.hidden = false;
+  welcome.classList.remove("leaving");
+  document.body.classList.add("welcome-open");
+  $("guest").hidden = Boolean(me.require_login);
+}
+
+function hideWelcome() {
+  if (welcome.hidden) return;
+  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const done = () => {
+    welcome.hidden = true;
+    document.body.classList.remove("welcome-open");
+  };
+  if (reduce) return done();
+  welcome.classList.add("leaving");
+  setTimeout(done, 520);
+}
+
+function showAccount() {
+  $("account").hidden = !me.user;
+  if (me.user) $("account-name").textContent = me.user.name || me.user.email;
+}
+
+$("guest").addEventListener("click", () => {
+  try {
+    sessionStorage.setItem("guest", "1");
+  } catch {}
+  hideWelcome();
+});
+$("google-signin").addEventListener("click", (e) => {
+  if (me.google) return; // a real link to /auth/google
+  e.preventDefault();
+  const note = $("welcome-note");
+  note.textContent = me.demo
+    ? "Google sign-in works in the hosted app. In this preview, continue without an account."
+    : "Google sign-in isn't set up on this server yet. Continue without an account for now.";
+  note.hidden = false;
+});
+$("sign-out").addEventListener("click", async () => {
+  await api.signOut().catch(() => {});
+  me.user = null;
+  try {
+    sessionStorage.removeItem("guest");
+  } catch {}
+  showAccount();
+  showWelcome();
+});
+
+const authError = new URLSearchParams(location.search).get("auth_error");
+if (authError) history.replaceState(null, "", location.pathname);
+api.me()
+  .catch(() => ({ google: false, require_login: false, user: null }))
+  .then((m) => {
+    me = m;
+    showAccount();
+    if (authError) {
+      $("welcome-note").textContent = authError.slice(0, 200);
+      $("welcome-note").hidden = false;
+    }
+    if (!me.user && (me.require_login || !guestChosen() || authError)) showWelcome();
+  });
 
 // ---------- Start ----------
 

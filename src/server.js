@@ -11,6 +11,7 @@ import { createGapLog, describeGap, gapKey, gapSummary } from "./gaps.js";
 import { researchGap } from "./research.js";
 import { createReviewQueue } from "./review.js";
 import { loadPartners, partnersForPage } from "./partners.js";
+import { createAuth } from "./auth.js";
 import { browseListings, buildResponse, categoryCounts, matchWithClaude, matchWithKeywords } from "./matcher.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -59,6 +60,41 @@ const CASE_MANAGER = process.env.CASE_MANAGER_BETA !== "0";
 const partnerData = loadPartners(path.join(ROOT, "data", "partners.json"));
 for (const e of partnerData.errors) console.warn(`  skipped ${e}`);
 console.log(`Case manager beta ${CASE_MANAGER ? `on (${partnerData.partners.length} partner${partnerData.partners.length === 1 ? "" : "s"})` : "off"}`);
+
+// "Continue with Google" sign-in (src/auth.js). Off until it's set up;
+// REQUIRE_LOGIN=1 then closes the search to people who haven't signed in.
+// The SOS sheet and 988 links never need an account.
+const auth = createAuth();
+console.log(`Google sign-in ${auth.enabled ? `on${auth.requireLogin ? " (required)" : " (optional)"}` : "off (no GOOGLE_CLIENT_ID)"}`);
+
+function redirect(res, location, cookies = []) {
+  res.writeHead(302, { ...SECURITY_HEADERS, Location: location, "Set-Cookie": cookies, "Cache-Control": "no-store" });
+  res.end();
+}
+
+async function handleAuth(req, res, pathname) {
+  if (!auth.enabled) return redirect(res, "/");
+  if (req.method === "GET" && pathname === "/auth/google") {
+    const { location, cookies } = auth.start();
+    return redirect(res, location, cookies);
+  }
+  if (req.method === "GET" && pathname === "/auth/google/callback") {
+    let out;
+    try {
+      out = await auth.finish(req);
+    } catch (err) {
+      console.error(`Google sign-in failed: ${err.message}`);
+      out = { error: "Couldn't reach Google. Try again.", cookies: [] };
+    }
+    return redirect(res, out.error ? `/?auth_error=${encodeURIComponent(out.error)}` : out.location, out.cookies);
+  }
+  if (req.method === "POST" && pathname === "/auth/logout") {
+    res.writeHead(200, { ...SECURITY_HEADERS, "Content-Type": "application/json", "Set-Cookie": auth.signOutCookie(), "Cache-Control": "no-store" });
+    return res.end('{"ok":true}');
+  }
+  res.writeHead(404, SECURITY_HEADERS);
+  res.end();
+}
 
 // The review page (/admin.html) needs ADMIN_TOKEN; without it, it's off.
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
@@ -306,6 +342,16 @@ async function handleAdmin(req, res, route) {
 
 const server = http.createServer(async (req, res) => {
   try {
+    const pathname = new URL(req.url, "http://x").pathname;
+    if (pathname.startsWith("/auth/")) return await handleAuth(req, res, pathname);
+    if (req.method === "GET" && pathname === "/api/me") {
+      const user = auth.user(req);
+      return sendJson(res, 200, { google: auth.enabled, require_login: auth.requireLogin, user: user ? { name: user.name, email: user.email } : null });
+    }
+    // With REQUIRE_LOGIN=1 the search needs a signed-in worker. /api/info
+    // stays open so the page (and its SOS sheet) always loads.
+    const open = ["/api/info", "/api/me"].includes(pathname) || pathname.startsWith("/api/admin/") || !pathname.startsWith("/api/");
+    if (auth.requireLogin && !open && !auth.user(req)) return sendJson(res, 401, { error: "Sign in to search.", sign_in: true });
     if (req.method === "POST" && req.url === "/api/search") return await handleSearch(req, res);
     if (req.method === "POST" && req.url === "/api/report") return await handleReport(req, res);
     if (req.method === "POST" && req.url === "/api/search-online") return await handleSearchOnline(req, res);
