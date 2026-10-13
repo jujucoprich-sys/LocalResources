@@ -1,35 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="NextStep">
-  <defs>
-    <linearGradient id="ns-wing" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="0.6" stop-color="#d9dfef"/>
-      <stop offset="1" stop-color="#8f9bbf"/>
-    </linearGradient>
-    <linearGradient id="ns-star" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ffe7a1"/>
-      <stop offset="1" stop-color="#e9a020"/>
-    </linearGradient>
-    <radialGradient id="ns-halo" cx="0.5" cy="0.42" r="0.5">
-      <stop offset="0" stop-color="#c9d3ff" stop-opacity="0.35"/>
-      <stop offset="1" stop-color="#c9d3ff" stop-opacity="0"/>
-    </radialGradient>
-  </defs>
-  <circle cx="50" cy="46" r="46" fill="url(#ns-halo)"/>
-  <!-- a broken ring, like an old crest -->
-  <path d="M18 70 A38 38 0 0 1 30 15 M70 15 A38 38 0 0 1 82 70" fill="none" stroke="#b9c3e6" stroke-width="1.6" stroke-linecap="round" opacity="0.55"/>
-  <path d="M38 86 A38 38 0 0 0 62 86" fill="none" stroke="#c8343c" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
-  <!-- the hawk, wings raised -->
-  <g fill="url(#ns-wing)" stroke="#1a2350" stroke-width="1.2" stroke-linejoin="round">
-    <path id="ns-left-wing" d="M47 52 C40 41 27 30 7 19 L14 30 L10 31 L18 38 L14 40 L23 45 L20 48 L30 51 L28 54 L41 57 Z"/>
-    <use href="#ns-left-wing" transform="matrix(-1 0 0 1 100 0)"/>
-    <path d="M50 33 C55.5 33 56.5 43 55.5 52 C55 60 54.2 65 53.4 70 L59 83 L52.5 79 L50 85 L47.5 79 L41 83 L46.6 70 C45.8 65 45 60 44.5 52 C43.5 43 44.5 33 50 33 Z"/>
-  </g>
-  <g fill="none" stroke="#7c88b0" stroke-width="0.9" stroke-linecap="round" opacity="0.8">
-    <path id="ns-left-wing-f" d="M44 51 C36 43 25 35 13 27 M44 53 C38 48 28 42 17 37 M44 55 C39 52 32 49 25 46"/>
-    <use href="#ns-left-wing-f" transform="matrix(-1 0 0 1 100 0)"/>
-  </g>
-  <path d="M50 39.5 L48.3 44.5 L50 47.5 L51.7 44.5 Z" fill="#f2b636" stroke="#1a2350" stroke-width="0.8" stroke-linejoin="round"/>
-  <path d="M46.2 37.6 L48.6 38.4 M53.8 37.6 L51.4 38.4" stroke="#1a2350" stroke-width="1.4" stroke-linecap="round"/>
-  <!-- the star it rises toward -->
-  <path d="M50 4 L52.6 12.4 L61 15 L52.6 17.6 L50 26 L47.4 17.6 L39 15 L47.4 12.4 Z" fill="url(#ns-star)"/>
+  <!-- HUD frame -->
+  <polygon points="50,5 89,27.5 89,72.5 50,95 11,72.5 11,27.5" fill="none" stroke="#9aa1ab" stroke-width="2" stroke-dasharray="20 6" stroke-linejoin="round"/>
+  <!-- faceted wings rising into an arrow: the next step -->
+  <polygon points="50,30 15,20 29,46 46,52" fill="#1b1e25"/>
+  <polygon points="46,52 29,46 35,63 48,65" fill="#4a505c"/>
+  <polygon points="50,30 85,20 71,46 54,52" fill="#2c3039"/>
+  <polygon points="54,52 71,46 65,63 52,65" fill="#6b7280"/>
+  <polygon points="50,24 54.5,40 52.5,77 50,84 47.5,77 45.5,40" fill="#111317"/>
+  <!-- the signal: where you're headed -->
+  <circle cx="50" cy="13" r="6.5" fill="none" stroke="#06b6d4" stroke-width="1.6" opacity="0.6"/>
+  <circle cx="50" cy="13" r="3.2" fill="#06b6d4"/>
 </svg>

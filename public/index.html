@@ -5,130 +5,91 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>NextStep</title>
   <meta name="description" content="Find food, housing, health, mental health, education, job, legal and safety help in New York City in under a minute.">
-  <meta name="theme-color" content="#040a26">
+  <meta name="theme-color" content="#eef0f3">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Lora:ital,wght@0,500;0,600;0,700;1,500&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <!-- Space: a starfield and nebula that drift with the cursor (space.js). -->
-  <canvas id="stars" class="stars" aria-hidden="true"></canvas>
-  <div class="nebula n1" aria-hidden="true"></div>
-  <div class="nebula n2" aria-hidden="true"></div>
-  <div class="nebula n3" aria-hidden="true"></div>
-  <div id="cursor-glow" class="cursor-glow" aria-hidden="true"></div>
+  <!-- Background: a light grid and a particle network that react to the cursor (space.js). -->
+  <div class="grid-bg" aria-hidden="true"></div>
+  <canvas id="stars" class="netfield" aria-hidden="true"></canvas>
+  <div id="reticle" class="reticle" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="NextStep home">
+      <span class="brand-logo"><svg viewBox="0 0 100 100" aria-hidden="true">
+  <!-- HUD frame -->
+  <polygon points="50,5 89,27.5 89,72.5 50,95 11,72.5 11,27.5" fill="none" stroke="#9aa1ab" stroke-width="2" stroke-dasharray="20 6" stroke-linejoin="round"/>
+  <!-- faceted wings rising into an arrow: the next step -->
+  <polygon points="50,30 15,20 29,46 46,52" fill="#1b1e25"/>
+  <polygon points="46,52 29,46 35,63 48,65" fill="#4a505c"/>
+  <polygon points="50,30 85,20 71,46 54,52" fill="#2c3039"/>
+  <polygon points="54,52 71,46 65,63 52,65" fill="#6b7280"/>
+  <polygon points="50,24 54.5,40 52.5,77 50,84 47.5,77 45.5,40" fill="#111317"/>
+  <!-- the signal: where you're headed -->
+  <circle cx="50" cy="13" r="6.5" fill="none" stroke="#06b6d4" stroke-width="1.6" opacity="0.6"/>
+  <circle cx="50" cy="13" r="3.2" fill="#06b6d4"/>
+</svg>
+</span>
+      <span class="brand-name">NEXT<span>STEP</span></span>
+    </a>
+    <span class="sys" aria-hidden="true"><b class="sys-dot"></b><span>ONLINE</span><span class="sys-count" id="sys-count"></span></span>
+    <span id="account" class="account" hidden>
+      <span id="account-name" class="account-name"></span>
+      <button type="button" id="sign-out" class="link-gold">sign out</button>
+    </span>
+    <button type="button" id="sos-open" class="sos-btn" aria-haspopup="dialog" aria-controls="sos">
+      <b class="sos-dot" aria-hidden="true"></b><span class="sos-word">SOS</span><span class="sos-sub">talk now</span>
+    </button>
+  </header>
 
   <section id="welcome" class="welcome" aria-labelledby="welcome-title" hidden>
     <div class="welcome-inner">
       <div class="welcome-logo float"><svg viewBox="0 0 100 100" aria-hidden="true">
-  <defs>
-    <linearGradient id="ns-wing-w" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="0.6" stop-color="#d9dfef"/>
-      <stop offset="1" stop-color="#8f9bbf"/>
-    </linearGradient>
-    <linearGradient id="ns-star-w" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ffe7a1"/>
-      <stop offset="1" stop-color="#e9a020"/>
-    </linearGradient>
-    <radialGradient id="ns-halo-w" cx="0.5" cy="0.42" r="0.5">
-      <stop offset="0" stop-color="#c9d3ff" stop-opacity="0.35"/>
-      <stop offset="1" stop-color="#c9d3ff" stop-opacity="0"/>
-    </radialGradient>
-  </defs>
-  <circle cx="50" cy="46" r="46" fill="url(#ns-halo-w)"/>
-  <!-- a broken ring, like an old crest -->
-  <path d="M18 70 A38 38 0 0 1 30 15 M70 15 A38 38 0 0 1 82 70" fill="none" stroke="#b9c3e6" stroke-width="1.6" stroke-linecap="round" opacity="0.55"/>
-  <path d="M38 86 A38 38 0 0 0 62 86" fill="none" stroke="#c8343c" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
-  <!-- the hawk, wings raised -->
-  <g fill="url(#ns-wing-w)" stroke="#1a2350" stroke-width="1.2" stroke-linejoin="round">
-    <path id="ns-left-wing-w" d="M47 52 C40 41 27 30 7 19 L14 30 L10 31 L18 38 L14 40 L23 45 L20 48 L30 51 L28 54 L41 57 Z"/>
-    <use href="#ns-left-wing-w" transform="matrix(-1 0 0 1 100 0)"/>
-    <path d="M50 33 C55.5 33 56.5 43 55.5 52 C55 60 54.2 65 53.4 70 L59 83 L52.5 79 L50 85 L47.5 79 L41 83 L46.6 70 C45.8 65 45 60 44.5 52 C43.5 43 44.5 33 50 33 Z"/>
-  </g>
-  <g fill="none" stroke="#7c88b0" stroke-width="0.9" stroke-linecap="round" opacity="0.8">
-    <path id="ns-left-wing-w-f" d="M44 51 C36 43 25 35 13 27 M44 53 C38 48 28 42 17 37 M44 55 C39 52 32 49 25 46"/>
-    <use href="#ns-left-wing-w-f" transform="matrix(-1 0 0 1 100 0)"/>
-  </g>
-  <path d="M50 39.5 L48.3 44.5 L50 47.5 L51.7 44.5 Z" fill="#f2b636" stroke="#1a2350" stroke-width="0.8" stroke-linejoin="round"/>
-  <path d="M46.2 37.6 L48.6 38.4 M53.8 37.6 L51.4 38.4" stroke="#1a2350" stroke-width="1.4" stroke-linecap="round"/>
-  <!-- the star it rises toward -->
-  <path d="M50 4 L52.6 12.4 L61 15 L52.6 17.6 L50 26 L47.4 17.6 L39 15 L47.4 12.4 Z" fill="url(#ns-star-w)"/>
+  <!-- HUD frame -->
+  <polygon points="50,5 89,27.5 89,72.5 50,95 11,72.5 11,27.5" fill="none" stroke="#9aa1ab" stroke-width="2" stroke-dasharray="20 6" stroke-linejoin="round"/>
+  <!-- faceted wings rising into an arrow: the next step -->
+  <polygon points="50,30 15,20 29,46 46,52" fill="#1b1e25"/>
+  <polygon points="46,52 29,46 35,63 48,65" fill="#4a505c"/>
+  <polygon points="50,30 85,20 71,46 54,52" fill="#2c3039"/>
+  <polygon points="54,52 71,46 65,63 52,65" fill="#6b7280"/>
+  <polygon points="50,24 54.5,40 52.5,77 50,84 47.5,77 45.5,40" fill="#111317"/>
+  <!-- the signal: where you're headed -->
+  <circle cx="50" cy="13" r="6.5" fill="none" stroke="#06b6d4" stroke-width="1.6" opacity="0.6"/>
+  <circle cx="50" cy="13" r="3.2" fill="#06b6d4"/>
 </svg>
 
 </div>
-      <p class="wordmark">next<span>step</span></p>
+      <p class="wordmark">NEXT<span>STEP</span></p>
+      <p class="hud-label">// NYC RESOURCE NAVIGATOR</p>
       <div class="glass welcome-card" data-tilt>
-        <h1 id="welcome-title">find your next step</h1>
-        <p class="welcome-lede">sign in to search verified help across new york city.</p>
+        <h1 id="welcome-title">Sign in</h1>
+        <p class="welcome-lede">Search verified help across all five boroughs.</p>
         <a id="google-signin" class="google-btn" href="/auth/google">
           <svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
           <span>Continue with Google</span>
         </a>
         <p id="welcome-note" class="welcome-note" role="status" hidden></p>
-        <button type="button" id="guest" class="link-gold">continue without an account</button>
+        <button type="button" id="guest" class="link-gold">Continue without an account</button>
         <p class="welcome-fine">Google only shares your name and email with us. We never see your Gmail, and nothing you search is saved.</p>
       </div>
-      <p class="welcome-sos">need to talk to someone now? <a href="tel:988">call</a> or <a href="sms:988">text 988</a></p>
+      <p class="welcome-sos">Need to talk to someone now? <a href="tel:988">Call</a> or <a href="sms:988">text 988</a></p>
     </div>
   </section>
 
   <header class="masthead">
     <div class="wrap">
-      <p class="brand">
-        <span class="brand-logo float"><svg viewBox="0 0 100 100" aria-hidden="true">
-  <defs>
-    <linearGradient id="ns-wing-h" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="0.6" stop-color="#d9dfef"/>
-      <stop offset="1" stop-color="#8f9bbf"/>
-    </linearGradient>
-    <linearGradient id="ns-star-h" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ffe7a1"/>
-      <stop offset="1" stop-color="#e9a020"/>
-    </linearGradient>
-    <radialGradient id="ns-halo-h" cx="0.5" cy="0.42" r="0.5">
-      <stop offset="0" stop-color="#c9d3ff" stop-opacity="0.35"/>
-      <stop offset="1" stop-color="#c9d3ff" stop-opacity="0"/>
-    </radialGradient>
-  </defs>
-  <circle cx="50" cy="46" r="46" fill="url(#ns-halo-h)"/>
-  <!-- a broken ring, like an old crest -->
-  <path d="M18 70 A38 38 0 0 1 30 15 M70 15 A38 38 0 0 1 82 70" fill="none" stroke="#b9c3e6" stroke-width="1.6" stroke-linecap="round" opacity="0.55"/>
-  <path d="M38 86 A38 38 0 0 0 62 86" fill="none" stroke="#c8343c" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
-  <!-- the hawk, wings raised -->
-  <g fill="url(#ns-wing-h)" stroke="#1a2350" stroke-width="1.2" stroke-linejoin="round">
-    <path id="ns-left-wing-h" d="M47 52 C40 41 27 30 7 19 L14 30 L10 31 L18 38 L14 40 L23 45 L20 48 L30 51 L28 54 L41 57 Z"/>
-    <use href="#ns-left-wing-h" transform="matrix(-1 0 0 1 100 0)"/>
-    <path d="M50 33 C55.5 33 56.5 43 55.5 52 C55 60 54.2 65 53.4 70 L59 83 L52.5 79 L50 85 L47.5 79 L41 83 L46.6 70 C45.8 65 45 60 44.5 52 C43.5 43 44.5 33 50 33 Z"/>
-  </g>
-  <g fill="none" stroke="#7c88b0" stroke-width="0.9" stroke-linecap="round" opacity="0.8">
-    <path id="ns-left-wing-h-f" d="M44 51 C36 43 25 35 13 27 M44 53 C38 48 28 42 17 37 M44 55 C39 52 32 49 25 46"/>
-    <use href="#ns-left-wing-h-f" transform="matrix(-1 0 0 1 100 0)"/>
-  </g>
-  <path d="M50 39.5 L48.3 44.5 L50 47.5 L51.7 44.5 Z" fill="#f2b636" stroke="#1a2350" stroke-width="0.8" stroke-linejoin="round"/>
-  <path d="M46.2 37.6 L48.6 38.4 M53.8 37.6 L51.4 38.4" stroke="#1a2350" stroke-width="1.4" stroke-linecap="round"/>
-  <!-- the star it rises toward -->
-  <path d="M50 4 L52.6 12.4 L61 15 L52.6 17.6 L50 26 L47.4 17.6 L39 15 L47.4 12.4 Z" fill="url(#ns-star-h)"/>
-</svg>
-
-</span>
-        <span class="brand-name">next<span>step</span></span>
-        <span id="account" class="account" hidden>
-          <span id="account-name" class="account-name"></span>
-          <button type="button" id="sign-out" class="link-gold">sign out</button>
-        </span>
-      </p>
-      <h1>find the next step.</h1>
+      <p class="hud-label">// NYC RESOURCE NAVIGATOR</p>
+      <h1>Find the next step.</h1>
       <p class="lede">Describe the situation, or browse by need. Food, shelter, health care, legal help and more across all five boroughs and online.</p>
       <ol id="quest" class="quest" aria-label="Your progress">
-        <li class="quest-step" data-step="1" data-state="active"><span class="quest-node" aria-hidden="true">1</span><span class="quest-label">Tell us what's going on</span></li>
-        <li class="quest-step" data-step="2"><span class="quest-node" aria-hidden="true">2</span><span class="quest-label">Pick your matches</span></li>
-        <li class="quest-step" data-step="3"><span class="quest-node" aria-hidden="true">3</span><span class="quest-label">Take the next step</span></li>
+        <li class="quest-step" data-step="1" data-state="active"><span class="quest-node" aria-hidden="true">01</span><span class="quest-label">Describe</span></li>
+        <li class="quest-step" data-step="2"><span class="quest-node" aria-hidden="true">02</span><span class="quest-label">Match</span></li>
+        <li class="quest-step" data-step="3"><span class="quest-node" aria-hidden="true">03</span><span class="quest-label">Act</span></li>
       </ol>
-      <span class="spark s1" aria-hidden="true"></span><span class="spark s2" aria-hidden="true"></span><span class="spark s3" aria-hidden="true"></span><span class="spark s4" aria-hidden="true"></span>
     </div>
   </header>
 
@@ -282,12 +243,6 @@
       </section>
     </div>
   </dialog>
-
-  <button type="button" id="sos-open" class="sos-fab" aria-haspopup="dialog" aria-controls="sos">
-    <span class="sos-ring" aria-hidden="true"></span>
-    <span class="sos-word">SOS</span>
-    <span class="sos-sub">Talk now</span>
-  </button>
 
   <div id="tray" class="tray" hidden>
     <span class="tray-count"><strong id="tray-count">0</strong> in handout</span>

@@ -564,7 +564,7 @@ function renderSearch(data) {
   if (data.results.length === 0) resultsEl.append(el("p", "empty", "Nothing on the list fits this situation. Try browsing by need below."));
   data.results.forEach((r, i) => {
     const card = renderCard(r);
-    const rank = el("span", "rank", String(i + 1));
+    const rank = el("span", "rank", `0${i + 1}`);
     rank.setAttribute("aria-label", i === 0 ? "Best match" : `Match ${i + 1}`);
     card.prepend(rank);
     if (i === 0) card.classList.add("top-pick");
@@ -1112,7 +1112,7 @@ function setQuest(step) {
   for (const li of document.querySelectorAll(".quest-step")) {
     const n = Number(li.dataset.step);
     li.dataset.state = n < step ? "done" : n === step ? "active" : "";
-    li.querySelector(".quest-node").textContent = n < step ? "✓" : String(n);
+    li.querySelector(".quest-node").textContent = n < step ? "✓" : `0${n}`;
   }
 }
 document.addEventListener("click", (e) => {
@@ -1273,6 +1273,7 @@ api.zips().then((z) => (ZIPS = z)).catch(() => {});
 api.info()
   .then((info) => {
     showCounts(info.categories);
+    $("sys-count").textContent = `${info.count} resources`;
     photosEnabled = Boolean(info.photos);
     liveWeb = Boolean(info.live_web);
     if (info.case_manager) caseManager = info.case_manager;
