@@ -10,6 +10,7 @@ import { parseCsv } from "./csv.js";
 import { createGapLog, describeGap, gapKey, gapSummary } from "./gaps.js";
 import { researchGap } from "./research.js";
 import { createReviewQueue } from "./review.js";
+import { loadPartners, partnersForPage } from "./partners.js";
 import { browseListings, buildResponse, categoryCounts, matchWithClaude, matchWithKeywords } from "./matcher.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -51,6 +52,13 @@ console.log(`Photos: Wikimedia Commons on; Google Street View ${photos.providers
 const GAP_LOG = process.env.GAP_LOG !== "0" && !IS_SAMPLE;
 const gapLog = createGapLog(path.join(ROOT, "data", "gaps.csv"));
 const reviewQueue = createReviewQueue(path.join(ROOT, "data", "candidates.json"));
+
+// Hospital case manager referrals on the SOS sheet (beta). Partners come
+// from data/partners.json; CASE_MANAGER_BETA=0 hides the section.
+const CASE_MANAGER = process.env.CASE_MANAGER_BETA !== "0";
+const partnerData = loadPartners(path.join(ROOT, "data", "partners.json"));
+for (const e of partnerData.errors) console.warn(`  skipped ${e}`);
+console.log(`Case manager beta ${CASE_MANAGER ? `on (${partnerData.partners.length} partner${partnerData.partners.length === 1 ? "" : "s"})` : "off"}`);
 
 // The review page (/admin.html) needs ADMIN_TOKEN; without it, it's off.
 const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
@@ -303,7 +311,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && req.url === "/api/search-online") return await handleSearchOnline(req, res);
     if (req.url.startsWith("/api/admin/")) return await handleAdmin(req, res, req.url.slice("/api/admin/".length).split("?")[0]);
     if (req.method === "GET" && req.url === "/api/info") {
-      return sendJson(res, 200, { sample: IS_SAMPLE, count: listings.length, unverified: UNVERIFIED, categories: categoryCounts(listings), photos: true, ai: AI_ENABLED, live_web: LIVE_WEB, emergency: FALLBACK });
+      return sendJson(res, 200, { sample: IS_SAMPLE, count: listings.length, unverified: UNVERIFIED, categories: categoryCounts(listings), photos: true, ai: AI_ENABLED, live_web: LIVE_WEB, emergency: FALLBACK, case_manager: { enabled: CASE_MANAGER, partners: CASE_MANAGER ? partnersForPage(partnerData.partners) : [] } });
     }
     const photoMatch = req.method === "GET" && /^\/api\/photo\/([\w-]+)(\/info)?$/.exec(req.url);
     if (photoMatch) return await handlePhoto(req, res, photoMatch[1], Boolean(photoMatch[2]));

@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Example Hospital (format only, not a real partner)",
+    "department": "Social Work / Case Management",
+    "phone": "212-555-0100",
+    "hours": "Mon-Fri 09:00-17:00",
+    "hours_notes": "Ask for the case manager on call.",
+    "borough": "Manhattan",
+    "address": "",
+    "intake_url": "",
+    "eligibility": "Adults 18+ who live in Manhattan.",
+    "languages": "English, Spanish"
+  }
+]

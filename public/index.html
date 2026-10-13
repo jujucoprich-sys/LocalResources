@@ -20,7 +20,13 @@
         <span class="brand-name">Next<span>Step</span></span>
       </p>
       <h1>Find the next step.</h1>
-      <p class="lede">Describe the situation, or browse by need. Food, shelter, health care, legal help and more across Manhattan, Brooklyn, Queens, the Bronx and online.</p>
+      <p class="lede">Describe the situation, or browse by need. Food, shelter, health care, legal help and more across all five boroughs and online.</p>
+      <ol id="quest" class="quest" aria-label="Your progress">
+        <li class="quest-step" data-step="1" data-state="active"><span class="quest-node" aria-hidden="true">1</span><span class="quest-label">Tell us what's going on</span></li>
+        <li class="quest-step" data-step="2"><span class="quest-node" aria-hidden="true">2</span><span class="quest-label">Pick your matches</span></li>
+        <li class="quest-step" data-step="3"><span class="quest-node" aria-hidden="true">3</span><span class="quest-label">Take the next step</span></li>
+      </ol>
+      <span class="spark s1" aria-hidden="true"></span><span class="spark s2" aria-hidden="true"></span><span class="spark s3" aria-hidden="true"></span><span class="spark s4" aria-hidden="true"></span>
     </div>
   </header>
 
@@ -145,6 +151,41 @@
       <div id="handout-actions" class="actions"></div>
     </div>
   </dialog>
+
+  <dialog id="sos" class="sheet sos-sheet" aria-labelledby="sos-title">
+    <div class="sheet-inner">
+      <div class="sheet-head">
+        <div>
+          <h2 id="sos-title">Talk to someone now</h2>
+          <p class="muted">Free, confidential, 24/7. You don't have to be in crisis to call.</p>
+        </div>
+        <button type="button" class="icon-button close-sheet" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <p class="sos-danger"><strong>In danger right now?</strong> <a href="tel:911">Call 911</a></p>
+      <div class="sos-actions">
+        <a class="sos-big call" href="tel:988"><span class="sos-big-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg></span><span><strong>Call 988</strong><small>Talk with a trained counselor</small></span></a>
+        <a class="sos-big text" href="sms:988"><span class="sos-big-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><span><strong>Text 988</strong><small>If talking out loud is hard</small></span></a>
+        <a class="sos-big chat" href="https://988lifeline.org/chat/" target="_blank" rel="noopener noreferrer"><span class="sos-big-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span><span><strong>Chat online</strong><small>988lifeline.org</small></span></a>
+      </div>
+      <p class="muted sos-small">Spanish: press 2. Veterans: press 1. Other languages: 988 can bring in an interpreter.</p>
+      <section id="case-manager" class="case-manager" hidden aria-labelledby="cm-title">
+        <div class="cm-head">
+          <h3 id="cm-title">Not urgent? Get a hospital case manager</h3>
+          <span class="beta-pill">Beta</span>
+        </div>
+        <p class="muted">A case manager can help with ongoing care, benefits, housing and follow-up appointments.</p>
+        <div id="cm-list"></div>
+      </section>
+    </div>
+  </dialog>
+
+  <button type="button" id="sos-open" class="sos-fab" aria-haspopup="dialog" aria-controls="sos">
+    <span class="sos-ring" aria-hidden="true"></span>
+    <span class="sos-word">SOS</span>
+    <span class="sos-sub">Talk now</span>
+  </button>
 
   <div id="tray" class="tray" hidden>
     <span class="tray-count"><strong id="tray-count">0</strong> in handout</span>

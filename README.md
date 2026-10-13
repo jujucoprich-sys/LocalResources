@@ -113,6 +113,12 @@ Then, on the review page:
 
 Approvals write to `data/listings.csv` on the server. On hosts that wipe the disk on redeploy, copy that file back into the repo (or keep `data/` on a persistent disk) so approved places aren't lost.
 
+## SOS button
+
+A red **SOS** button stays in the corner of every screen. It opens "Talk to someone now": call 988, text 988, or chat at 988lifeline.org, with 911 for immediate danger.
+
+Below that is **"Not urgent? Get a hospital case manager" (beta)**. Until a hospital partners with you it says "coming soon". To add one, copy `data/partners.example.json` to `data/partners.json` and fill in the hospital's case management line: `name`, `phone` and/or `intake_url` (https only), plus optional `department`, `hours`, `hours_notes`, `borough`, `eligibility`, `languages`. Restart the server; rows with problems are skipped and listed in the log. The page only shows the number or link. It never sends or stores anything about the person. `CASE_MANAGER_BETA=0` hides the section.
+
 ## Settings
 
 | Variable | Default | |
@@ -129,6 +135,7 @@ Approvals write to `data/listings.csv` on the server. On hosts that wipe the dis
 | `RATE_LIMIT_PER_MIN` | `20` | Searches per minute per IP, to protect the API bill |
 | `ADMIN_TOKEN` | none | Turns on the review page (`/admin.html`) for gaps and found resources |
 | `LIVE_WEB_RESULTS` | off | `1` adds the "Search online" button for thin searches (needs `ANTHROPIC_API_KEY`) |
+| `CASE_MANAGER_BETA` | on | `0` hides the hospital case manager section of the SOS sheet |
 | `GAP_LOG` | on | `GAP_LOG=0` stops logging gaps |
 | `TRUST_PROXY` | off | Set to `1` on hosts behind a proxy (Render, Railway, Fly.io) so the limit applies per visitor, not to everyone at once |
 
@@ -144,4 +151,4 @@ Any host that runs Node works (Render, Railway, Fly.io, a small VPS). Set `ANTHR
 
 ## Deliberately left out (see the plan)
 
-SOS / case manager button, SMS, sponsor features, accounts and history, follow-up nudges, anything touching patient records, multiple interface languages, native apps.
+SMS, sponsor features, accounts and history, follow-up nudges, anything touching patient records, multiple interface languages, native apps.

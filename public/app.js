@@ -397,7 +397,12 @@ function handoutToggle(r, { large = false } = {}) {
   paintToggle(b);
   b.addEventListener("click", (e) => {
     e.stopPropagation();
+    const adding = !inHandout(r.id);
     toggleHandout(r);
+    if (adding && inHandout(r.id)) {
+      burst(b);
+      setQuest(3);
+    }
   });
   return b;
 }
@@ -554,7 +559,15 @@ function renderSearch(data) {
   if (data.mode === "keyword") statusEl.append(noteBox("info", "Basic keyword search (AI matching is off). Check eligibility yourself."));
   if (data.message && data.mode !== "keyword") statusEl.append(noteBox("message", data.message));
   if (data.results.length === 0) resultsEl.append(el("p", "empty", "Nothing on the list fits this situation. Try browsing by need below."));
-  data.results.forEach((r, i) => resultsEl.append(withIndex(renderCard(r), i)));
+  data.results.forEach((r, i) => {
+    const card = renderCard(r);
+    const rank = el("span", "rank", String(i + 1));
+    rank.setAttribute("aria-label", i === 0 ? "Best match" : `Match ${i + 1}`);
+    card.prepend(rank);
+    if (i === 0) card.classList.add("top-pick");
+    resultsEl.append(withIndex(card, i));
+  });
+  if (data.results.length) setQuest(2);
   if (data.fallback?.length) resultsEl.append(renderFallback(data.fallback));
   if (data.gap && liveWeb) resultsEl.append(renderOnlineOffer());
   searchBlock.hidden = false;
@@ -673,6 +686,7 @@ for (const chip of document.querySelectorAll("[data-example]")) {
 $("clear-search").addEventListener("click", () => {
   searchBlock.hidden = true;
   lastSearch = null;
+  setQuest(1);
   form.reset();
   $("situation").focus();
 });
@@ -1084,6 +1098,91 @@ handoutSheet.addEventListener("click", (e) => {
   if (e.target === handoutSheet || e.target.closest(".close-sheet")) handoutSheet.close();
 });
 
+// ---------- Progress path ----------
+// The three steps in the header light up as the worker goes: describe,
+// pick from matches, then act (call, map, website or add to handout).
+
+let questStep = 1;
+function setQuest(step) {
+  if (step < questStep && step !== 1) return;
+  questStep = step;
+  for (const li of document.querySelectorAll(".quest-step")) {
+    const n = Number(li.dataset.step);
+    li.dataset.state = n < step ? "done" : n === step ? "active" : "";
+    li.querySelector(".quest-node").textContent = n < step ? "✓" : String(n);
+  }
+}
+document.addEventListener("click", (e) => {
+  if (e.target.closest(".card a, .sheet a, .online-card a")) setQuest(3);
+});
+
+// A small burst of dots from a button, for adding to the handout.
+function burst(from) {
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+  const box = from.getBoundingClientRect();
+  const layer = el("span", "burst");
+  layer.style.left = `${box.left + box.width / 2}px`;
+  layer.style.top = `${box.top + box.height / 2}px`;
+  for (let i = 0; i < 10; i++) {
+    const dot = el("i");
+    const angle = (i / 10) * Math.PI * 2;
+    dot.style.setProperty("--dx", `${Math.cos(angle) * (28 + (i % 3) * 10)}px`);
+    dot.style.setProperty("--dy", `${Math.sin(angle) * (28 + (i % 3) * 10)}px`);
+    dot.style.setProperty("--c", ["var(--food-ink)", "var(--housing-ink)", "var(--mind-ink)", "var(--edu-ink)", "var(--safety-ink)"][i % 5]);
+    layer.append(dot);
+  }
+  document.body.append(layer);
+  setTimeout(() => layer.remove(), 700);
+}
+
+// ---------- SOS ----------
+// Always one tap away: 988 by call, text or chat. Below it, a beta list of
+// partner hospitals' case management lines. Nothing is sent or saved; the
+// buttons just open the phone or the partner's own intake page.
+
+const sosSheet = $("sos");
+let caseManager = { enabled: false, partners: [] };
+
+function renderCaseManager() {
+  const section = $("case-manager");
+  section.hidden = !caseManager.enabled;
+  if (!caseManager.enabled) return;
+  const list = $("cm-list");
+  if (!caseManager.partners.length) {
+    const p = el("div", "cm-empty");
+    p.append(
+      el("strong", null, "Coming soon."),
+      el("span", null, " We're working with NYC hospitals so you can reach a case manager from here. For now, 988 can connect you to ongoing care, or ask for the social work department at any hospital."),
+    );
+    list.replaceChildren(p);
+    return;
+  }
+  const ul = el("ul", "cm-partners");
+  for (const p of caseManager.partners) {
+    const li = el("li", "cm-partner");
+    const head = el("div", "cm-partner-head");
+    head.append(el("strong", null, p.name));
+    if (p.open?.label) head.append(el("span", `pill ${p.open.state === "open" ? "open" : p.open.state === "closed" ? "closed" : ""}`, p.open.label));
+    li.append(head);
+    const facts = [p.department, p.borough && p.borough !== "Citywide" ? p.borough : "", p.eligibility, p.languages && `Languages: ${p.languages}`, p.hours ? prettyHours(p.hours) : "", p.hours_notes].filter(Boolean);
+    for (const f of facts) li.append(el("p", "muted", f));
+    const actions = el("div", "actions");
+    if (p.phone) actions.append(linkButton("primary call", telHref(p.phone), "phone", `Call ${p.phone}`));
+    if (p.intake_url) actions.append(linkButton("secondary", p.intake_url, "link", "Request a case manager", true));
+    li.append(actions);
+    ul.append(li);
+  }
+  list.replaceChildren(ul);
+}
+
+$("sos-open").addEventListener("click", () => {
+  renderCaseManager();
+  sosSheet.showModal();
+});
+sosSheet.addEventListener("click", (e) => {
+  if (e.target === sosSheet || e.target.closest(".close-sheet")) sosSheet.close();
+});
+
 // ---------- Start ----------
 
 renderGrid();
@@ -1094,6 +1193,7 @@ api.info()
     showCounts(info.categories);
     photosEnabled = Boolean(info.photos);
     liveWeb = Boolean(info.live_web);
+    if (info.case_manager) caseManager = info.case_manager;
     const banner = $("data-banner");
     if (info.sample) {
       banner.textContent = "Demo mode: these listings are made up. Don't refer anyone to them.";
